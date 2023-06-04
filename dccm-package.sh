@@ -18,7 +18,7 @@ date_time()
 
 app_version()
 {
-  version=`head -30 ${ART_CODE}.py | grep "__version__" | cut -f3 -d " " |  sed 's/"//g'`
+  version=`head -30 ${ART_CODE}.py | grep "__version__" | cut -f3 -d " " |  sed 's/"//g' | tr -d '\r'`
   echo "$version"
 }   
 display_usage()
@@ -48,7 +48,7 @@ done
 app_vers=`app_version`
 if [ "${VERSION_TAG}" != "${app_vers}" ]
 then
-   echo "ERROR: A version tag of \"${VERSION_TAG}\", when ${ART_CODE}.py, thinks that it is version \"${app_vers}\""
+   echo -e "ERROR: A version tag of \"${VERSION_TAG}\", when ${ART_CODE}.py, thinks that it is version \"${app_vers}\""
    exit 1
 fi
 

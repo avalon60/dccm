@@ -3,53 +3,150 @@ __author__ = 'Clive Bostock'
 __version__ = "1.0.0"
 __license__ = 'MIT - see LICENSE.md'
 
-import tkinter
 import tkinter as tk
 import customtkinter as ctk
 from customtkinter import ThemeManager
+from PIL import Image, ImageTk
 import textwrap
-import os
+import json
 from pathlib import Path
-from configparser import ConfigParser, ExtendedInterpolation
+from customtkinter.windows.widgets.appearance_mode.appearance_mode_base_class import CTkAppearanceModeBaseClass
+import os
+import platform
+
+# Constants
+# These aren't true sizes as per WEB design
+HEADING1 = ('Roboto', 26)
+HEADING2 = ('Roboto', 22)
+HEADING3 = ('Roboto', 20)
+HEADING4 = ('Roboto', 18)
+HEADING5 = ('Roboto', 16)
+# HEADING_UL = 'Roboto 11 underline'
+REGULAR_TEXT = ('Roboto', 13)
+
+SMALL_TEXT = ('Roboto', 8)
+TOOLTIP_DELAY = 1
+
+
+def hex2rgb(hex_color: str) -> tuple:
+    return tuple(int(hex_color.strip("#")[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def rgb2hex(rgb_color: tuple) -> str:
+    return "#{:02x}{:02x}{:02x}".format(round(rgb_color[0]), round(rgb_color[1]), round(rgb_color[2]))
 
 
 def contrast_colour(color: str, differential: int = 20):
     """The contrast_colour function, accepts a hex colour code (format #RRGGBB) and generates a slightly contrasting
     colour, based upon the specified increment. The larger the increment, the bigger the deviation from the original
     colour."""
-    if str(color).startswith("#"):
-        color_rgb = ThemeManager.hex2rgb(color)
+    if color is None:
+        # This occurs where we have a colour property set to "transparent", these render as white
+        # so return a grey as a contrast.
+        return '#b0b0b0'
+    if not str(color).startswith("#"):
+        convert_hex = color_constants.colors[color].hex_format()
+        color_rgb = hex2rgb(convert_hex)
+        rgb_0 = color_rgb[0]
+        rgb_1 = color_rgb[1]
+        rgb_2 = color_rgb[2]
+    else:
+        color_rgb = hex2rgb(color)
         rgb_0 = color_rgb[0]
         rgb_1 = color_rgb[1]
         rgb_2 = color_rgb[2]
 
-        if color_rgb[0] > differential:
-            rgb_0 = color_rgb[0] - differential
-        else:
-            rgb_0 = color_rgb[0] + differential
+    if color_rgb[0] > differential:
+        rgb_0 = color_rgb[0] - differential
+    else:
+        rgb_0 = color_rgb[0] + differential
 
-        if color_rgb[1] > differential:
-            rgb_1 = color_rgb[1] - differential
-        else:
-            rgb_1 = color_rgb[1] + differential
+    if color_rgb[1] > differential:
+        rgb_1 = color_rgb[1] - differential
+    else:
+        rgb_1 = color_rgb[1] + differential
 
-        if color_rgb[2] > differential:
-            rgb_2 = color_rgb[2] - differential
-        else:
-            rgb_2 = color_rgb[2] + differential
+    if color_rgb[2] > differential:
+        rgb_2 = color_rgb[2] - differential
+    else:
+        rgb_2 = color_rgb[2] + differential
 
-        return ThemeManager.rgb2hex((rgb_0, rgb_1, rgb_2))
+    return rgb2hex((rgb_0, rgb_1, rgb_2))
 
 
-def get_color_from_name(name: str):
+def shade_up(color: str, differential: int = 20, multiplier: int = 1):
+    """The shade_up function, accepts a hex colour code (format #RRGGBB) and generates a lighter shade of
+    the colour, based upon the specified differential and an optional multiplier. The larger the increment,
+    the bigger the deviation from the original colour."""
+    compound_differential = differential * multiplier
+    if color is None:
+        # This occurs where we have a colour property set to "transparent", these render as white
+        # so return a grey as a contrast.
+        return '#b0b0b0'
+    if not str(color).startswith("#"):
+        convert_hex = color_constants.colors[color].hex_format()
+        color_rgb = hex2rgb(convert_hex)
+        rgb_0 = color_rgb[0]
+        rgb_1 = color_rgb[1]
+        rgb_2 = color_rgb[2]
+    else:
+        color_rgb = hex2rgb(color)
+        rgb_0 = color_rgb[0]
+        rgb_1 = color_rgb[1]
+        rgb_2 = color_rgb[2]
+
+    if color_rgb[0] + compound_differential > 255 or color_rgb[1] + compound_differential > 255 or color_rgb[2] + compound_differential > 255:
+        # Don't perturb the colour balance
+        return color
+
+    rgb_0 = color_rgb[0] + compound_differential
+    rgb_1 = color_rgb[1] + compound_differential
+    rgb_2 = color_rgb[2] + compound_differential
+
+    return rgb2hex((rgb_0, rgb_1, rgb_2))
+
+
+def shade_down(color: str, differential: int = 20, multiplier: int = 1):
+    """The shade_down function, accepts a hex colour code (format #RRGGBB) and generates a darker shade of
+    the colour, based upon the specified differential and an optional multiplier. The larger the increment,
+    the bigger the deviation from the original colour."""
+    compound_differential = differential * multiplier
+    if color is None:
+        # This occurs where we have a colour property set to "transparent", these render as white
+        # so return a grey as a contrast.
+        return '#b0b0b0'
+    if not str(color).startswith("#"):
+        convert_hex = color_constants.colors[color].hex_format()
+        color_rgb = hex2rgb(convert_hex)
+        rgb_0 = color_rgb[0]
+        rgb_1 = color_rgb[1]
+        rgb_2 = color_rgb[2]
+    else:
+        color_rgb = hex2rgb(color)
+        rgb_0 = color_rgb[0]
+        rgb_1 = color_rgb[1]
+        rgb_2 = color_rgb[2]
+
+    if color_rgb[0] - compound_differential < 0 or color_rgb[1] - compound_differential < 0 or color_rgb[2] - compound_differential < 0:
+        # Don't perturb the colour balance
+        return color
+
+    rgb_0 = color_rgb[0] - compound_differential
+    rgb_1 = color_rgb[1] - compound_differential
+    rgb_2 = color_rgb[2] - compound_differential
+
+    return rgb2hex((rgb_0, rgb_1, rgb_2))
+
+
+def get_color_from_name(widget_type: str, widget_property: str = "fg_color"):
     """Gets the colour code associated with the supplied widget property,
     as defined by the currently active CustomTkinter theme."""
     mode = ctk.get_appearance_mode()
     if mode == 'Light':
-        mode = 0
+        mode_idx = 0
     else:
-        mode = 1
-    colour = ThemeManager.theme["color"][name][mode]
+        mode_idx = 1
+    colour = ThemeManager.theme[widget_type][widget_property][mode_idx]
     return colour
 
 
@@ -91,25 +188,46 @@ def str_mode_to_int(mode=None):
     return 1
 
 
-def themes_list(themes_dir: Path):
-    """This function generates a list of theme names, based on the json files found in the  supplied themes dir
-    These are basically the theme file names, with the .json extension stripped out."""
-    json_files = [file for file in os.listdir(themes_dir) if file.endswith('.json')]
-    theme_names = []
-    for file in json_files:
-        theme_name = os.path.splitext(file)[0]
-        theme_names.append(theme_name)
-    theme_names.sort()
-    return theme_names
+def load_image(light_image, dark_image=None, image_size: tuple = (30, 30)):
+    """ load rectangular image with path relative to PATH """
 
-def theme_property_color(theme_file_path, mode: str, property: str):
+    if dark_image is None:
+        dark_image = light_image
+
+    return ctk.CTkImage(light_image=Image.open(light_image),
+                        dark_image=Image.open(dark_image),
+                        size=image_size)
+    # return ImageTk.PhotoImage(Image.open(path).resize((image_size, image_size)))
+
+
+def theme_property_color(theme_file_path, widget_type: str, widget_property: str, mode: str):
     """Based on the pathname to the CustomTkinter theme's JSON file, we return the colour code, for the specified
     CustomTkinter appearance mode, and widget property. """
     with open(theme_file_path) as json_file:
         theme_dict = json.load(json_file)
 
     mode_idx = 0 if mode.lower() == 'light' else 1
-    property_colour = theme_dict['color'][property][mode_idx]
+    property_colour = theme_dict[widget_type][widget_property][mode_idx]
+    return property_colour
+
+def theme_property(theme_file_path, widget_type: str, widget_property: str):
+    """Based on the pathname to the CustomTkinter theme's JSON file, we return the property value, for the specified
+    CustomTkinter widget property. """
+    with open(theme_file_path) as json_file:
+        theme_dict = json.load(json_file)
+
+    property_colour = theme_dict[widget_type][widget_property]
+    return property_colour
+
+def theme_provenence_attribute(theme_file_path, attribute: str, value_on_missing:str = 'Unknown'):
+    """Based on the pathname to the CustomTkinter theme's JSON file, we return the requested provenance value
+    associated with the supplied attribute."""
+    with open(theme_file_path) as json_file:
+        theme_dict = json.load(json_file)
+    try:
+        property_colour = theme_dict["provenance"][attribute]
+    except KeyError:
+        return value_on_missing
     return property_colour
 
 
@@ -126,10 +244,126 @@ def wrap_string(text_string: str, wrap_width=80):
         string = string + element + '\n'
     return string
 
+class CBtkMenu(tk.Menu):
+    widget_registry = []
+
+    def __init__(self,
+                 *args,
+                 **kwargs):
+        super().__init__(*args, **kwargs)
+
+        mode = ctk.get_appearance_mode()
+        if mode == 'Light':
+            mode = 0
+        else:
+            mode = 1
+        fg_color = ThemeManager.theme["DropdownMenu"]["fg_color"][mode]
+        hover_color = ThemeManager.theme["DropdownMenu"]["hover_color"][mode]
+        text_color = ThemeManager.theme["DropdownMenu"]["text_color"][mode]
+
+        platform_font = ThemeManager.theme["CTkFont"]
+        self._font_family = platform_font["family"]
+        self._font_size = 11
+        self._font_weight = platform_font["weight"]
+
+        self.configure(bg=fg_color,
+                       fg=text_color,
+                       activebackground=hover_color,
+                       activeforeground=text_color,
+                       font=(self._font_family, self._font_size, self._font_weight))
+
+        CBtkMenu.widget_registry.append(self)
+
+def themes_list(themes_dir: Path):
+    """This function generates a list of theme names, based on the json files found in the  supplied themes dir
+    These are basically the theme file names, with the .json extension stripped out."""
+    json_files = [file for file in os.listdir(themes_dir) if file.endswith('.json')]
+    theme_names = []
+    for file in json_files:
+        theme_name = os.path.splitext(file)[0]
+        theme_names.append(theme_name)
+    theme_names.sort()
+    return theme_names
+
+    @classmethod
+    def update_widgets_mode(cls):
+        """Method to update all menu widgets following an appearance mode change."""
+        for widget in CBtkMenu.widget_registry:
+            try:
+                widget.update_appearance_mode()
+            except tk.TclError:
+                # print(f'Skipping widget configuration')
+                pass
+
+    def update_appearance_mode(self):
+        """Method called to scan through rendered widgets and update to a new appearance mode setting."""
+        mode = ctk.get_appearance_mode()
+        if mode == 'Light':
+            mode = 0
+        else:
+            mode = 1
+
+        fg_color = ThemeManager.theme["DropdownMenu"]["fg_color"][mode]
+        hover_color = ThemeManager.theme["DropdownMenu"]["hover_color"][mode]
+        text_color = ThemeManager.theme["DropdownMenu"]["text_color"][mode]
+
+        self.configure(bg=fg_color,
+                       fg=text_color,
+                       activebackground=hover_color,
+                       activeforeground=text_color)
+
+
+class CBtkMenu2(tk.Menu, CTkAppearanceModeBaseClass):
+    def __init__(self):
+        CTkAppearanceModeBaseClass.__init__(self)
+
+    def __init__(self,
+                 *args,
+                 **kwargs):
+        super().__init__(*args, **kwargs)
+
+        mode = ctk.get_appearance_mode()
+        if mode == 'Light':
+            mode = 0
+        else:
+            mode = 1
+        fg_color = ThemeManager.theme["DropdownMenu"]["fg_color"][mode]
+        hover_color = ThemeManager.theme["DropdownMenu"]["hover_color"][mode]
+        text_color = ThemeManager.theme["DropdownMenu"]["text_color"][mode]
+
+        platform_font = ThemeManager.theme["CTkFont"]
+        self._font_family = platform_font["family"]
+        self._font_size = 11
+        self._font_weight = platform_font["weight"]
+
+        self.configure(bg=fg_color,
+                       fg=text_color,
+                       activebackground=hover_color,
+                       activeforeground=text_color,
+                       font=(self._font_family, self._font_size, self._font_weight))
+
+    def update_appearance_mode(self):
+        mode = ctk.get_appearance_mode()
+        if mode == 'Light':
+            mode = 0
+        else:
+            mode = 1
+
+        fg_color = ThemeManager.theme["DropdownMenu"]["fg_color"][mode]
+        hover_color = ThemeManager.theme["DropdownMenu"]["hover_color"][mode]
+        text_color = ThemeManager.theme["DropdownMenu"]["text_color"][mode]
+
+        self.configure(bg=fg_color,
+                       fg=text_color,
+                       activebackground=hover_color,
+                       activeforeground=text_color)
+
 
 class InvalidParameterValue(Exception):
     """Unexpected parameter value passed to a function."""
     pass
+
+
 
 
 class CBtkMessageBox(object):
@@ -220,15 +454,15 @@ class CBtkMessageBox(object):
 
         if button_count == 1:
             pad_x = 50
-            self.root.geometry("320x140")
+            self.root.geometry("320x155")
         elif button_count == 2:
             pad_x = 30
-            self.root.geometry("320x140")
+            self.root.geometry("320x155")
         elif button_count == 3:
             pad_x = 20
-            self.root.geometry("420x140")
+            self.root.geometry("420x155")
         else:
-            self.root.geometry("440x140")
+            self.root.geometry("440x155")
             pad_x = 5
         # Override if the API has been instructed to do so...
         if geometry:
@@ -388,7 +622,7 @@ class CBtkMessageBox(object):
                 pass
 
 
-def raise_tk_window(window_widget: tkinter.Toplevel):
+def raise_tk_window(window_widget: tk.Toplevel):
     """Brings a window widget to the front (above other windows), but does not lock it there."""
 
     try:
@@ -454,10 +688,10 @@ class CBtkStatusBar(tk.Entry):
         """
         super().__init__()
 
+        if fg_color is None:
+            fg_color = bg_color = self.get_color_from_name(widget_type='CTkFrame', widget_property='fg_color')
         if text_color is None:
-            bg_color = self.get_color_from_name(name='frame_high')
-        if text_color is None:
-            text_color = self.get_color_from_name(name='text')
+            text_color = self.get_color_from_name(widget_type='CTkLabel', widget_property='text_color')
 
         self._message_id = None
         self._master = master
@@ -474,7 +708,9 @@ class CBtkStatusBar(tk.Entry):
         self._status_text_life = status_text_life
         assert isinstance(self._status_text_life, int)
 
-        self.widget = ctk.CTkLabel(master, relief=tk.SUNKEN,
+        # TODO: Uncomment relief when fixed in CTkLabel
+        self.widget = ctk.CTkLabel(master,
+                                   # relief=tk.SUNKEN,
                                    text='',
                                    anchor='w')
         if text_color is not None:
@@ -501,7 +737,7 @@ class CBtkStatusBar(tk.Entry):
         self.set_status_text(status_text=' ')
 
     @staticmethod
-    def get_color_from_name(name: str):
+    def get_color_from_name(widget_type: str, widget_property="fg_color"):
         """Gets the colour code associated with the supplied widget property,
         as defined by the currently active CustomTkinter theme."""
         mode = ctk.get_appearance_mode()
@@ -509,7 +745,7 @@ class CBtkStatusBar(tk.Entry):
             mode = 0
         else:
             mode = 1
-        colour = ThemeManager.theme["color"][name][mode]
+        colour = ThemeManager.theme[widget_type][widget_property][mode]
         return colour
 
     def set_status_text(self, status_text: str,
@@ -543,7 +779,7 @@ class CBtkStatusBar(tk.Entry):
     def update_text_colour(self):
         """This method can be called if you flip the appearance mode between "Light" and "Dark". It interrogates the
         theme, setting the text to the colour defined by the appearance mode."""
-        text_color = self.get_color_from_name('text')
+        text_color = self.get_color_from_name(widget_type='CTkLabel', widget_property='text_color')
         self.widget.configure(text_color=text_color)
 
     def cancel_message_timer(self):
@@ -586,12 +822,12 @@ class CBtkToolTip(object):
         :param fg_color:  Hex colour code (#RRGGBB), defining the text colour of the tooltip. 
         """
         if bg_color is None:
-            self._bg_colour = self.get_color_from_name('frame_low')
+            self._bg_colour = self.get_color_from_name(widget_type='CTkToplevel', widget_property='fg_color')
         else:
             self._bg_colour = bg_color
 
         if fg_color is None:
-            self._fg_color = self.get_color_from_name('text')
+            self._fg_color = self.get_color_from_name(widget_type='CTkLabel', widget_property='text_color')
         else:
             self._fg_color = fg_color
 
@@ -644,7 +880,7 @@ class CBtkToolTip(object):
             tw.destroy()
 
     @staticmethod
-    def get_color_from_name(name: str):
+    def get_color_from_name(widget_type: str, widget_property: str):
         """Gets the colour code associated with the supplied widget property,
         as defined by the currently active CustomTkinter theme."""
         mode = ctk.get_appearance_mode()
@@ -652,5 +888,5 @@ class CBtkToolTip(object):
             mode = 0
         else:
             mode = 1
-        colour = ThemeManager.theme["color"][name][mode]
+        colour = ThemeManager.theme[widget_type][widget_property][mode]
         return colour

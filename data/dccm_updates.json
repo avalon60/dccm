@@ -1,0 +1,22 @@
+{
+   "001":{
+      "sql_apply_version":"2.3",
+      "description": "Apply system id security update",
+      "sql_statement":"delete from preferences where preference_name = 'system_hash_id' and scope = 'system';"
+   },
+   "002":{
+      "sql_apply_version":"2.3",
+      "description": "Add connections.connection_banner",
+      "sql_statement":"alter table connections add column connection_banner varchar(10);"
+   },
+   "003":{
+      "sql_apply_version":"2.3",
+      "description": "Add connections.connection_message",
+      "sql_statement":"alter table connections add column connection_message varchar(75);"
+   },
+   "004":{
+      "sql_apply_version":"2.3",
+      "description": "Add connections.connection_text_colour",
+      "sql_statement":"alter table connections add column connection_text_colour varchar(10)"
+   }
+}

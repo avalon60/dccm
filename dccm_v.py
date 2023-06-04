@@ -26,13 +26,18 @@ import cbtk_kit as cbtk
 ENCODING = 'utf-8'
 
 # Constants
-HEADING1 = 'Roboto 16'
-HEADING2 = 'Roboto 14'
-HEADING3 = 'Roboto 12'
-HEADING4 = 'Roboto 11'
-HEADING_UL = 'Roboto 11 underline'
-REGULAR_TEXT = 'Roboto 10'
-SMALL_TEXT = 'Roboto 7'
+# These aren't true sizes as per WEB design
+HEADING1 = ('Roboto', 26)
+HEADING2 = ('Roboto', 22)
+HEADING3 = ('Roboto', 20)
+HEADING4 = ('Roboto', 18)
+HEADING5 = ('Roboto', 16)
+
+CTK_VERSION = ctk.__version__
+
+# HEADING_UL = 'Roboto 11 underline'
+REGULAR_TEXT = ('Roboto', 10)
+SMALL_TEXT = ('Roboto', 9)
 
 TOOLTIP_DELAY = 1
 
@@ -116,8 +121,8 @@ class DCCMView(ctk.CTk):
                                       text='',
                                       width=60,
                                       height=30,
-                                      bg_color=None,
-                                      fg_color=None,
+                                      bg_color="transparent",
+                                      fg_color="transparent",
                                       image=dccm_icon)
         btn_dccm_icon.grid(row=1, column=0, sticky='ew')
 
@@ -135,8 +140,8 @@ class DCCMView(ctk.CTk):
 
         btn_logo = ctk.CTkButton(master=frm_about_logo, text='', height=50, width=50,
                                  corner_radius=widget_corner_radius,
-                                 bg_color=None,
-                                 fg_color=None,
+                                 bg_color="transparent",
+                                 fg_color="transparent",
                                  hover_color=None,
                                  border_color=None,
                                  image=logo_image)
@@ -162,17 +167,12 @@ class DCCMView(ctk.CTk):
 
     def create_menu(self):
         # Set up the core of our menu
-        foreground = cbtk.get_color_from_name('text')
-        background = cbtk.get_color_from_name('frame_high')
         # NOTE: On Windows and OSX, it isn't possible to change the Menu bar colour.
-        self.des_menu = tk.Menu(self, tearoff=0, background=background, fg=foreground)
-
-        self.des_menu.config(background=background, foreground=foreground)
+        self.des_menu = cbtk.CBtkMenu(self, tearoff=0)
         self.config(menu=self.des_menu)
 
         # Now add a File sub-menu option
         self.file_menu = tk.Menu(self.des_menu, tearoff=0)
-        self.file_menu.config(background=background, foreground=foreground)
         self.des_menu.add_cascade(label='File', menu=self.file_menu)
         self.file_menu.add_command(label='Set as Default', command=self.mvc_controller.set_connection_as_current)
         self.file_menu.add_separator()
@@ -198,7 +198,6 @@ class DCCMView(ctk.CTk):
 
         # Now add a Tools sub-menu option
         self.tools_menu = tk.Menu(self.des_menu, tearoff=0)
-        self.tools_menu.config(background=background, foreground=foreground)
         self.des_menu.add_cascade(label='Tools', menu=self.tools_menu)
         self.tools_menu.add_command(label='Preferences', command=self.launch_preferences)
         self.tools_menu.add_separator()
@@ -337,13 +336,13 @@ class DCCMView(ctk.CTk):
             opm_app_theme_tooltip = ToolTip(lbl_default_wallet_directory,
                                             f"Set the default cloud wallet location.", TOOLTIP_DELAY)
 
-        icon_fill_colour = cbtk.get_color_from_name(name='text')
+
         # folder_image = icon_to_image("folder", fill=icon_fill_colour, scale_to_width=32)
         folder_image = load_image(images_location / 'wallet1.png', 40)
         self.btn_default_wallet_directory = ctk.CTkButton(master=frm_prefs_widgets,
                                                           text='',
-                                                          bg_color=None,
-                                                          fg_color=None,
+                                                          bg_color="transparent",
+                                                          fg_color="transparent",
                                                           width=60,
                                                           height=30,
                                                           command=self.mvc_controller.ask_default_wallet_directory,
@@ -356,7 +355,7 @@ class DCCMView(ctk.CTk):
                                             TOOLTIP_DELAY)
         widget_start_row += 1
 
-        self.lbl_default_wallet_name = ctk.CTkLabel(master=frm_prefs_widgets, text_font=SMALL_TEXT,
+        self.lbl_default_wallet_name = ctk.CTkLabel(master=frm_prefs_widgets, font=SMALL_TEXT,
                                                     text=f'{self.mvc_controller.default_wallet_directory}')
         self.lbl_default_wallet_name.grid(row=widget_start_row, columnspan=2, column=0, padx=(130, 0), pady=0,
                                           sticky='w')
@@ -375,8 +374,8 @@ class DCCMView(ctk.CTk):
         self.btn_oci_config = ctk.CTkButton(master=frm_prefs_widgets,
                                             text='',
                                             width=60,
-                                            bg_color=None,
-                                            fg_color=None,
+                                            bg_color="transparent",
+                                            fg_color="transparent",
                                             height=30,
                                             command=self.mvc_controller.get_oci_config,
                                             image=config_image
@@ -390,7 +389,7 @@ class DCCMView(ctk.CTk):
 
         widget_start_row += 1
 
-        self.lbl_oci_config = ctk.CTkLabel(master=frm_prefs_widgets, text_font=SMALL_TEXT,
+        self.lbl_oci_config = ctk.CTkLabel(master=frm_prefs_widgets, font=SMALL_TEXT,
                                            text=f'{self.mvc_controller.oci_config}')
         self.lbl_oci_config.grid(row=widget_start_row, columnspan=2, column=0, padx=(165, 0), pady=0, sticky='w')
 
@@ -576,8 +575,8 @@ class DCCMView(ctk.CTk):
         row += 1
 
         self.lbl_cltool_client_tool_code = ctk.CTkLabel(master=self.frm_client_tool_setting,
-                                                        bg_color=None,
-                                                        fg_color=None,
+                                                        bg_color="transparent",
+                                                        fg_color="transparent",
                                                         state=tk.DISABLED,
                                                         text='Template Name:')
         self.lbl_cltool_client_tool_code.grid(row=row, column=0, padx=1, pady=(15, 0), sticky='w')
@@ -680,8 +679,8 @@ class DCCMView(ctk.CTk):
         upload_image = load_image(images_location / 'upload1.png', 40)
         self.btn_imp_import_file = ctk.CTkButton(master=self.frm_imp_left,
                                                  text='',
-                                                 bg_color=None,
-                                                 fg_color=None,
+                                                 bg_color="transparent",
+                                                 fg_color="transparent",
                                                  width=60,
                                                  height=30,
                                                  image=upload_image,
@@ -690,7 +689,7 @@ class DCCMView(ctk.CTk):
         # self.btn_mod_wallet_location.place(x=100, y=-100)
         row += 1
 
-        self.lbl_imp_import_file = ctk.CTkLabel(master=self.frm_imp_left, text_font=SMALL_TEXT,
+        self.lbl_imp_import_file = ctk.CTkLabel(master=self.frm_imp_left, font=SMALL_TEXT,
                                                 text='(Import not selected)')
         self.lbl_imp_import_file.grid(row=row, column=0, padx=(20, 20), pady=0, sticky='w')
         row += 1
@@ -865,8 +864,8 @@ class DCCMView(ctk.CTk):
         row += 1
 
         self.lbl_tunnel_ssh_tunnel_code = ctk.CTkLabel(master=self.frm_tunnel_setting,
-                                                       bg_color=None,
-                                                       fg_color=None,
+                                                       bg_color="transparent",
+                                                       fg_color="transparent",
                                                        state=tk.DISABLED,
                                                        text='Template Name:')
         self.lbl_tunnel_ssh_tunnel_code.grid(row=row, column=0, padx=1, pady=(15, 0), sticky='w')
@@ -984,19 +983,20 @@ class DCCMView(ctk.CTk):
         connections = self.mvc_controller.connections_dict()
         row = 0
         self.launch_buttons = {}
+        HEADING_UL=HEADING2 = ('Roboto', 14)
         lbl_connection_name = ctk.CTkLabel(master=frm_cscan_widgets, text='Connection Id', anchor='w',
-                                           text_font=HEADING_UL)
+                                           font=HEADING_UL)
         lbl_connection_name.grid(row=row, column=0, sticky='w', padx=10)
-        lbl_account_name = ctk.CTkLabel(master=frm_cscan_widgets, text='DB Account', anchor='w', text_font=HEADING_UL)
+        lbl_account_name = ctk.CTkLabel(master=frm_cscan_widgets, text='DB Account', anchor='w', font=HEADING_UL)
         lbl_account_name.grid(row=row, column=2, sticky='w', padx=(0, 10))
         lbl_connect_string = ctk.CTkLabel(master=frm_cscan_widgets, text='Connect String', anchor='w',
-                                          text_font=HEADING_UL)
+                                          font=HEADING_UL)
         lbl_connect_string.grid(row=row, column=3, sticky='w', padx=(0, 10))
         lbl_probe_header = ctk.CTkLabel(master=frm_cscan_widgets, text='Contactable', anchor='w',
-                                        text_font=HEADING_UL)
+                                        font=HEADING_UL)
         lbl_probe_header.grid(row=row, column=4, sticky='w', padx=(15, 10))
         lbl_launch = ctk.CTkLabel(master=frm_cscan_widgets, text='Launch', anchor='w',
-                                  text_font=HEADING_UL)
+                                  font=HEADING_UL)
         lbl_launch.grid(row=row, column=5, padx=(0, 50), pady=(0, 5), sticky='w')
         row += 1
         for connection_name in connections.keys():
@@ -1048,8 +1048,8 @@ class DCCMView(ctk.CTk):
             btn_probe = ctk.CTkButton(master=frm_cscan_widgets,
                                       width=20,
                                       height=20,
-                                      fg_color=None,
-                                      bg_color=None,
+                                      fg_color="transparent",
+                                      bg_color="transparent",
                                       state=tk.DISABLED,
                                       image=icon_image,
                                       text='')
@@ -1062,8 +1062,8 @@ class DCCMView(ctk.CTk):
                                                      text=None,
                                                      image=launch,
                                                      border_width=2,
-                                                     fg_color=None,
-                                                     bg_color=None,
+                                                     fg_color="transparent",
+                                                     bg_color="transparent",
                                                      width=50,
                                                      state=tk_state,
                                                      command=lambda connection=connection_name:
@@ -1144,7 +1144,7 @@ class DCCMView(ctk.CTk):
 
         row = 0
         self.lbl_control = ctk.CTkLabel(master=frm_root_buttons,
-                                        text_font=HEADING3,
+                                        font=HEADING3,
                                         text='Control')
         self.lbl_control.grid(row=0, column=0, padx=10, pady=(5, 0))
 
@@ -1178,7 +1178,7 @@ class DCCMView(ctk.CTk):
         default_connection = self.mvc_controller.default_connection()
         default_connection = f'( Default: {default_connection} )'
         self.lbl_default_connection = ctk.CTkLabel(master=frm_root_buttons,
-                                                   text_font=SMALL_TEXT,
+                                                   font=SMALL_TEXT,
                                                    text=default_connection)
         self.lbl_default_connection.grid(row=row, column=0, padx=10, pady=(10, 0))
         row += 1
@@ -1238,13 +1238,13 @@ class DCCMView(ctk.CTk):
 
         row = 0
         self.lbl_selected_connection = ctk.CTkLabel(master=self.frm_right,
-                                                    text_font=HEADING3,
+                                                    font=HEADING3,
                                                     text='Connection Synopsis')
         self.lbl_selected_connection.grid(row=row, column=1, padx=10, pady=(5, 5), sticky='ew')
 
         row = 1
         self.lbl_root_connection_type = ctk.CTkLabel(master=self.frm_connection_type,
-                                                     fg_color=None,
+                                                     fg_color="transparent",
                                                      text='Management Type:')
         self.lbl_root_connection_type.grid(row=row, column=0, padx=(5, 15), pady=(5, 0), sticky='w')
         self.lbl_root_connection_type.grid_remove()
@@ -1252,59 +1252,59 @@ class DCCMView(ctk.CTk):
         row += 1
 
         self.lbl_root_connection_type_disp = ctk.CTkLabel(master=self.frm_connection_type,
-                                                          fg_color=None,
+                                                          fg_color="transparent",
                                                           text='')
         self.lbl_root_connection_type_disp.grid(row=row, column=0, padx=(30, 10), pady=(0, 5), sticky='ew')
         row += 1
 
         self.lbl_root_database_account = ctk.CTkLabel(master=self.frm_root_database_account,
-                                                      fg_color=None,
+                                                      fg_color="transparent",
                                                       text='DB Account:')
         self.lbl_root_database_account.grid(row=row, column=0, padx=(5, 10), pady=(5, 0), sticky='w')
         self.lbl_root_database_account.grid_remove()
         row += 1
 
         self.lbl_root_database_account_disp = ctk.CTkLabel(master=self.frm_root_database_account,
-                                                           fg_color=None,
+                                                           fg_color="transparent",
                                                            text='')
         self.lbl_root_database_account_disp.grid(row=row, column=0, padx=(30, 10), pady=(0, 5), sticky='w')
         row += 1
 
         self.lbl_root_connect_string = ctk.CTkLabel(master=self.frm_root_connect_string,
-                                                    fg_color=None,
+                                                    fg_color="transparent",
                                                     text='Connect String:')
         self.lbl_root_connect_string.grid(row=row, column=0, padx=(5, 10), pady=(5, 0), sticky='w')
         self.lbl_root_connect_string.grid_remove()
         row += 1
 
         self.lbl_root_connect_string_disp = ctk.CTkLabel(master=self.frm_root_connect_string,
-                                                         fg_color=None,
+                                                         fg_color="transparent",
                                                          text='')
         self.lbl_root_connect_string_disp.grid(row=row, column=0, padx=(30, 10), pady=(0, 5), sticky='w')
         row += 1
 
         self.lbl_root_client_tool = ctk.CTkLabel(master=self.frm_root_client_tool,
-                                                 fg_color=None,
+                                                 fg_color="transparent",
                                                  text='Client Tool:')
         self.lbl_root_client_tool.grid(row=row, column=0, padx=(5, 10), pady=(5, 0), sticky='w')
         self.lbl_root_client_tool.grid_remove()
         row += 1
 
         self.lbl_root_client_tool_disp = ctk.CTkLabel(master=self.frm_root_client_tool,
-                                                      fg_color=None,
+                                                      fg_color="transparent",
                                                       text='')
         self.lbl_root_client_tool_disp.grid(row=row, column=0, padx=(30, 10), pady=(0, 5), sticky='w')
         row += 1
 
         self.lbl_root_initial_dir = ctk.CTkLabel(master=self.frm_root_initial_dir,
-                                                 fg_color=None,
+                                                 fg_color="transparent",
                                                  text='Initial Directory:')
         self.lbl_root_initial_dir.grid(row=row, column=0, padx=(5, 10), pady=(5, 0), sticky='w')
         self.lbl_root_initial_dir.grid_remove()
         row += 1
 
         self.lbl_root_initial_dir_disp = ctk.CTkLabel(master=self.frm_root_initial_dir,
-                                                      fg_color=None,
+                                                      fg_color="transparent",
                                                       text='')
         self.lbl_root_initial_dir_disp.grid(row=row, column=0, padx=(30, 10), pady=(0, 5), sticky='w')
         row += 1
@@ -1312,14 +1312,14 @@ class DCCMView(ctk.CTk):
         # ===
 
         self.lbl_root_ssh_tunnel = ctk.CTkLabel(master=self.frm_root_ssh_tunnel,
-                                                fg_color=None,
+                                                fg_color="transparent",
                                                 text='SSH Tunnel:')
         self.lbl_root_ssh_tunnel.grid(row=row, column=0, padx=(5, 10), pady=(5, 0), sticky='w')
         self.lbl_root_ssh_tunnel.grid_remove()
         row += 1
 
         self.lbl_root_ssh_tunnel_disp = ctk.CTkLabel(master=self.frm_root_ssh_tunnel,
-                                                     fg_color=None,
+                                                     fg_color="transparent",
                                                      text='')
         self.lbl_root_ssh_tunnel_disp.grid(row=row, column=0, padx=(30, 10), pady=(0, 5), sticky='w')
         row += 1
@@ -1359,21 +1359,21 @@ class DCCMView(ctk.CTk):
         self.frm_mod_connection_body.grid(row=0, column=0, padx=5, pady=5, sticky='nsew', columnspan=3)
 
         lbl_mod_connection_type = ctk.CTkLabel(master=self.frm_mod_connection_body, text='Connection Name / Type',
-                                               text_font=HEADING4)
+                                               font=HEADING4)
         lbl_mod_connection_type.grid(row=0, column=0, padx=(10, 5), pady=0, sticky='w', columnspan=2)
 
         self.frm_mod_conn_type = ctk.CTkFrame(master=self.frm_mod_connection_body)
         self.frm_mod_conn_type.grid(row=1, column=0, padx=5, pady=0, sticky='ew', columnspan=2)
 
         lbl_mod_credentials = ctk.CTkLabel(master=self.frm_mod_connection_body, text='Credentials              ',
-                                           text_font=HEADING4)
+                                           font=HEADING4)
         lbl_mod_credentials.grid(row=2, column=0, padx=5, pady=(5, 0), sticky='w', columnspan=2)
 
         self.frm_mod_credentials = ctk.CTkFrame(master=self.frm_mod_connection_body)
         self.frm_mod_credentials.grid(row=3, column=0, padx=5, pady=5, sticky='new', columnspan=2)
 
         lbl_mod_tns_properties = ctk.CTkLabel(master=self.frm_mod_connection_body, text='Connection Properties',
-                                              text_font=HEADING4)
+                                              font=HEADING4)
         lbl_mod_tns_properties.grid(row=4, column=0, padx=5, pady=(5, 0), sticky='w')
 
         self.frm_mod_tns_properties = ctk.CTkFrame(master=self.frm_mod_connection_body)
@@ -1381,7 +1381,7 @@ class DCCMView(ctk.CTk):
 
         lbl_mod_gui_session_init = ctk.CTkLabel(master=self.frm_mod_connection_body,
                                                 text='Cmd Mode Session Intialisation',
-                                                text_font=HEADING4)
+                                                font=HEADING4)
         lbl_mod_gui_session_init.grid(row=6, column=0, padx=5, pady=(5, 0), sticky='w')
 
         self.frm_mod_cmd_session = ctk.CTkFrame(master=self.frm_mod_connection_body)
@@ -1389,7 +1389,7 @@ class DCCMView(ctk.CTk):
 
         lbl_mod_gui_session_init = ctk.CTkLabel(master=self.frm_mod_connection_body,
                                                 text='GUI Mode Session Intialisation',
-                                                text_font=HEADING4)
+                                                font=HEADING4)
         lbl_mod_gui_session_init.grid(row=6, column=1, padx=5, pady=5, sticky='w')
         # Frame to render GUI session initialisation widgets
         self.frm_mod_gui_session = ctk.CTkFrame(master=self.frm_mod_connection_body)
@@ -1397,7 +1397,7 @@ class DCCMView(ctk.CTk):
 
         lbl_mod_ssh_settings = ctk.CTkLabel(master=self.frm_mod_connection_body,
                                             text='SSH Settings         ',
-                                            text_font=HEADING4)
+                                            font=HEADING4)
         lbl_mod_ssh_settings.grid(row=8, column=0, padx=5, pady=(5, 0), sticky='w')
 
         self.frm_mod_ssh_settings = ctk.CTkFrame(master=self.frm_mod_connection_body)
@@ -1477,15 +1477,12 @@ class DCCMView(ctk.CTk):
                                         f"cloud database connections.",
                                         TOOLTIP_DELAY)
         column += 1
-
-        bg_color = cbtk.get_color_from_name(name='frame_low')
-        icon_fill_colour = cbtk.get_color_from_name(name='text')
         # wallet_image = icon_to_image("wallet", fill=icon_fill_colour, scale_to_width=32)
         wallet_image = load_image(images_location / 'wallet1.png', 25)
         self.btn_mod_wallet_location = ctk.CTkButton(master=self.frm_mod_tns_properties,
                                                      text='',
-                                                     bg_color=None,
-                                                     fg_color=None,
+                                                     bg_color="transparent",
+                                                     fg_color="transparent",
                                                      width=60,
                                                      height=30,
                                                      image=wallet_image,
@@ -1515,7 +1512,7 @@ class DCCMView(ctk.CTk):
         row += 1
         column = 0
 
-        self.lbl_mod_wallet_name = ctk.CTkLabel(master=self.frm_mod_tns_properties, text_font=SMALL_TEXT,
+        self.lbl_mod_wallet_name = ctk.CTkLabel(master=self.frm_mod_tns_properties, font=SMALL_TEXT,
                                                 text='')
         self.lbl_mod_wallet_name.grid(row=row, column=column, padx=(150, 5), pady=0, sticky='w', columnspan=2)
 
@@ -1649,7 +1646,7 @@ class DCCMView(ctk.CTk):
 
         # self.eye_image = icon_to_image("eye", fill=icon_fill_colour, scale_to_width=32)
         self.eye_image = load_image(images_location / 'eye3.png', 30)
-        btn_eye = ctk.CTkButton(master=self.frm_mod_credentials, bg_color=None, fg_color=None,
+        btn_eye = ctk.CTkButton(master=self.frm_mod_credentials, bg_color="transparent", fg_color="transparent",
                                 command=self.toggle_password_display,
                                 width=40,
                                 height=20,
@@ -1713,8 +1710,8 @@ class DCCMView(ctk.CTk):
         folder_image = load_image(images_location / 'folder.png', 25)
         self.btn_mod_launch_directory = ctk.CTkButton(master=self.frm_mod_gui_session,
                                                       text='',
-                                                      bg_color=None,
-                                                      fg_color=None,
+                                                      bg_color="transparent",
+                                                      fg_color="transparent",
                                                       width=40,
                                                       height=20,
                                                       command=self.mvc_controller.ask_client_launch_directory,
@@ -1727,7 +1724,7 @@ class DCCMView(ctk.CTk):
                                             TOOLTIP_DELAY)
         row += 1
 
-        self.lbl_mod_disp_launch_directory = ctk.CTkLabel(master=self.frm_mod_gui_session, text_font=SMALL_TEXT,
+        self.lbl_mod_disp_launch_directory = ctk.CTkLabel(master=self.frm_mod_gui_session, font=SMALL_TEXT,
                                                           text='')
         self.lbl_mod_disp_launch_directory.grid(row=row, column=0, padx=(20, 5), pady=0, sticky='w')
 
