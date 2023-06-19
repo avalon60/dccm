@@ -583,7 +583,7 @@ class DCCMModule:
         config_pathname = preference(db_file_path=self.db_file_path,
                                      scope="preference",
                                      preference_name="oci_config")
-        if config_pathname:
+        if config_pathname != 'None':
             self.default_connection_type = "OCI Vault"
             valid_connection_types = ["OCI Vault", "Legacy"]
         else:
@@ -966,16 +966,23 @@ class DCCMModule:
                 system_uid = system_id()
                 connections_dict[connection]["ocid"] = kb_encrypt(data=ocid,
                                                                   kb_password=password)
-
-                if include_wallets and connections_dict[connection]["wallet_location"] and password:
+                wallet_path = connections_dict[connection]["wallet_location"]
+                wallet_skipped = False
+                if include_wallets and password and not Path(wallet_path).exists():
+                    feedback.append(f'Wallet skipped: Connection, "{connection}", references a missing wallet {wallet_path}')
+                    wallet_skipped = True
+                    base64_wallet = ''
+                elif include_wallets and wallet_path and password:
                     base64_wallet = base64_file(file_path=connections_dict[connection]["wallet_location"])
                     base64_wallet = kb_encrypt(data=base64_wallet,
                                                kb_password=password)
                 else:
                     base64_wallet = ''
+                if wallet_skipped:
+                    feedback.append(f'Connection, "{connection}", exported without wallet...')
+                else:
+                    feedback.append(f'Connection, "{connection}", successfully exported...')
                 connections_dict[connection]["base64_wallet"] = base64_wallet
-
-                feedback.append(f'Connection, "{connection}", successfully exported...')
                 export_count += 1
         else:
             for connection, connection_dict in connections_dict.items():

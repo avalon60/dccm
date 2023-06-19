@@ -14,6 +14,7 @@ import tkinter as tk
 from tkinter import filedialog as fd
 import customtkinter as ctk
 import dccm_v as vew
+from PIL import Image, ImageTk
 
 from argparse import HelpFormatter
 from pathlib import Path
@@ -36,11 +37,12 @@ import socket
 import subprocess
 import oci
 from oci.config import from_file
+import hashlib
 from kellanb_cryptography import aes, key
 import shutil
 from shutil import which
 import base64
-from CTkMessagebox import CTkMessagebox
+
 
 ENCODING = 'utf-8'
 
@@ -70,8 +72,8 @@ if tns_admin is None and oracle_home is not None:
 
 prog_path = os.path.realpath(__file__)
 prog = os.path.basename(__file__)
-app_home = Path(os.path.dirname(os.path.realpath(__file__)))
 # Get the data location, required for the config file etc
+app_home = Path(os.path.dirname(os.path.realpath(__file__)))
 data_location = mod.data_location
 images_location = mod.images_location
 temp_location = mod.temp_location
@@ -308,6 +310,7 @@ if import_connection and 'wallets-on' in import_options and 'remap-on' not in im
     print("Please rectify and try again.")
     exit(1)
 
+
 valid_modes = ["gui", "plugin", "command"]
 valid_modes_str = ', '.join(valid_modes)
 if run_mode not in valid_modes:
@@ -404,7 +407,6 @@ def oci_secret(config_file_pathname: Path, oci_profile: str, secret_id: str):
     config = from_file(file_location=config_file_pathname, profile_name=oci_profile)
     secrets_client = oci.secrets.SecretsClient(config)
     secret_base64 = secrets_client.get_secret_bundle(secret_id).data.secret_bundle_content
-
     secret = secret_base64.__getattribute__("content")
     content_type = secret_base64.__getattribute__("content_type")
     if content_type == "BASE64":
@@ -740,7 +742,7 @@ class DCCMControl:
         self.db_file_path = db_file_path
         self.wallet_pathname = ''
         self.import_pathname = None
-        self.import_json = None
+
         self.connect_strings = []
 
         self.client_launch_directory = Path(os.getcwd())
@@ -849,7 +851,7 @@ class DCCMControl:
 
         if mode == 'gui':
             self.ROOT_WIDTH = 520
-            self.ROOT_HEIGHT = 570
+            self.ROOT_HEIGHT = 550
             ctk.set_appearance_mode(self.app_appearance_mode)  # Modes: "System" (standard), "Dark", "Light"
             ctk.set_default_color_theme(str(themes_location / f'{self.app_theme}.json'))
             self.mvc_view = vew.DCCMView(mvc_controller=self)
@@ -983,7 +985,7 @@ class DCCMControl:
         connection_banner = connection_record["connection_banner"]
         if connection_banner is None:
             connection_banner = ''
-        if connection_banner and connection_banner != 'None':
+        if connection_banner and connection_banner !='None':
             ascii_banner = pyfiglet.figlet_format(connection_banner)
             print(f'{colour_sequence}{ascii_banner}{colour_off}')
 
@@ -1077,25 +1079,25 @@ class DCCMControl:
             if exists(start_directory):
                 os.chdir(start_directory)
             else:
-                confirm = CTkMessagebox(master=self.mvc_view,
-                                        title='Action Required',
-                                        message=f'The start directory, {start_directory}, for the '
-                                                f'"{connection_name}", does not '
-                                                f'exist. Please rectify and try again.',
-                                        option_1='OK')
-                if confirm.get() == 'OK':
-                    return
+                confirm = cbtk.CBtkMessageBox(title='Action Required',
+                                              message=f'The start directory, {start_directory}, for the '
+                                                      f'"{connection_name}", does not '
+                                                      f'exist. Please rectify and try again.',
+                                              button1_text='OK',
+                                              geometry=f"300x160{geometry_offset}",
+                                              master=self.mvc_view)
+                return
 
         if connection_record["wallet_required_yn"] == "Y":
             if not exists(wallet_location):
-                confirm = CTkMessagebox(master=self.mvc_view,
-                                        title='Action Required',
-                                        message=f'The associated wallet, {wallet_location}, for the '
-                                                f'"{connection_name}", cannot be found. '
-                                                f'Please rectify and try again.',
-                                        option_1='OK')
-                if confirm.get() == 'OK':
-                    return
+                confirm = cbtk.CBtkMessageBox(title='Action Required',
+                                              message=f'The associated wallet, {wallet_location}, for the '
+                                                      f'"{connection_name}", cannot be found. '
+                                                      f'Please rectify and try again.',
+                                              button1_text='OK',
+                                              geometry=f"300x160{geometry_offset}",
+                                              master=self.mvc_view)
+                return
         hostname, port_number = self.mvc_module.resolve_connect_host_port(connection_name)
         if connection_record["wallet_required_yn"] == "Y":
             connect_string_record = self.mvc_module.connection_wallet_connect_string_dict(
@@ -1106,25 +1108,25 @@ class DCCMControl:
                     ip = socket.gethostbyname(hostname)
                 except socket.gaierror:
                     ip = 'Unresolved IP'
-
-                confirm = CTkMessagebox(master=self.mvc_view,
-                                        title='Action Required',
-                                        message=f"Database server, {hostname} ({ip}), cannot be reached on port "
-                                                f"{port_number}. The connection may require ssh tunnel, VPN etc, "
-                                                f"to be established.",
-                                        option_1='OK')
-                if confirm.get() == 'OK':
-                    return
+                confirm = cbtk.CBtkMessageBox(title='Action Required',
+                                              message=f"Database server, {hostname} ({ip}), cannot be reached on port "
+                                                      f"{port_number}. The connection may require ssh tunnel, VPN etc, "
+                                                      f"to be established.",
+                                              button1_text='OK',
+                                              geometry=f"300x160{geometry_offset}",
+                                              master=self.mvc_view)
+                return
         else:
             if hostname is None or port_number is None:
-                confirm = CTkMessagebox(master=self.mvc_view,
-                                        title='Action Required',
-                                        message=f"The selected connection, \"{connection_name}\", is no longer "
-                                                f"valid. Possibly caused by an associated tnsnames.ora file entry, "
-                                                f"which has been deleted, since this connection was created.",
-                                        option_1='OK')
-                if confirm.get() == 'OK':
-                    return
+                confirm = cbtk.CBtkMessageBox(title='Stale Connection',
+                                              message=f"The selected connection, \"{connection_name}\", is no longer "
+                                                      f"valid. Possibly caused by an associated tnsnames.ora file entry, which "
+                                                      f"has been deleted, since this connection was created."
+                                              ,
+                                              button1_text='OK',
+                                              geometry=f"300x160{geometry_offset}",
+                                              master=self.mvc_view)
+                return
 
             if not port_is_open(host=hostname,
                                 port_number=int(port_number)):
@@ -1132,40 +1134,36 @@ class DCCMControl:
                     ip = socket.gethostbyname(hostname)
                 except socket.gaierror:
                     ip = 'Unresolved IP'
-
-                confirm = CTkMessagebox(master=self.mvc_view,
-                                        title='Action Required',
-                                        message=f"Database server, {hostname} ({ip}), cannot be reached on port "
-                                                f"{port_number}. Ensure that there are no network connectivity "
-                                                "issues and that the database, and database listener are "
-                                                "started.",
-                                        option_1='OK')
+                confirm = cbtk.CBtkMessageBox(title='Action Required',
+                                              message=f"Database server, {hostname} ({ip}), cannot be reached on port "
+                                                      f"{port_number}. Ensure that there are no network connectivity "
+                                                      "issues and that the database, and database listener are "
+                                                      "started.",
+                                              button1_text='OK',
+                                              geometry=f"300x170{geometry_offset}",
+                                              master=self.mvc_view)
                 print(f'Database server cannot be reached. Connection may require ssh tunnel, VPN etc, '
                       f'to be established.')
-                if confirm.get() == 'OK':
-                    return
+                return
 
         return_status, client_command = self.mvc_module.formulate_connection_launch(
             connection_identifier=connection_name)
         if return_status:
-            confirm = CTkMessagebox(master=self.mvc_view,
-                                    title='Action Required',
-                                    message=f'{return_status}',
-                                    option_1='OK')
-            print(f'Database server cannot be reached. Connection may require ssh tunnel, VPN etc, '
-                  f'to be established.')
-            if confirm.get() == 'OK':
-                return
+            confirm = cbtk.CBtkMessageBox(title='Action Required',
+                                          message=f'{return_status}',
+                                          button1_text='OK',
+                                          geometry=f"300x200{geometry_offset}",
+                                          master=self.mvc_view)
+            return
 
         status = os.system(client_command)
         if status:
-            confirm = CTkMessagebox(master=self.mvc_view,
-                                    title='Action Required',
-                                    message=f'Client command, "{client_command}", returned with a status of: '
-                                            f'{status}',
-                                    option_1='OK')
-            if confirm.get() == 'OK':
-                return
+            confirm = cbtk.CBtkMessageBox(title='Action Required',
+                                          message=f'Client command, "{client_command}", returned with a status of: '
+                                                  f'{status}',
+                                          button1_text='OK',
+                                          geometry=f"300x160{geometry_offset}",
+                                          master=self.mvc_view)
 
     def launch_mod_connection(self):
         """The launch_mod_connection method, lunches the maintain_connection method in "Modify" mode. This creates
@@ -1200,13 +1198,13 @@ class DCCMControl:
         status_text, ssh_command = self.mvc_module.formulate_ssh_launch(connection_id=connection_id, mode=run_mode)
         if status_text and mode == 'gui':
             position_geometry = self.retrieve_geometry(window_category='root')
-
-            confirm = CTkMessagebox(master=self.mvc_view,
-                                    title='Action Required',
-                                    message=status_text,
-                                    option_1='OK')
-            if confirm.get() == 'OK':
-                return
+            geometry_offset = cbtk.geometry_offset(position_geometry, 50, 100)
+            confirm = cbtk.CBtkMessageBox(title='Action Required',
+                                          message=status_text,
+                                          button1_text='OK',
+                                          geometry=f"300x160{geometry_offset}",
+                                          master=self)
+            return
         elif status_text:
             # We are in "command" or "plugin mode", so issue a message via print statement and exit.
             print(status_text)
@@ -1288,7 +1286,6 @@ class DCCMControl:
         self.app_appearance_mode = self.mvc_view.tk_appearance_mode_var.get()
         ctk.set_appearance_mode(
             self.app_appearance_mode)
-        cbtk.CBtkStatusBar.update_widgets_mode()
         self.status_bar.update_text_colour()
         self.enable_tooltips = self.mvc_view.swt_enable_tooltips.get()
         self.enable_ancillary_ssh_window = self.mvc_view.swt_enable_ancillary_ssh_window.get()
@@ -1310,8 +1307,8 @@ class DCCMControl:
         This is primarily used to control window positioning, upon subsequent program / window launches."""
         ROOT_WIDTH = 400
         ROOT_HEIGHT = 450
-        MOD_WIDTH = 820
-        MOD_HEIGHT = 760
+        MOD_WIDTH = 800
+        MOD_HEIGHT = 750
         geometry = self.mvc_module.retrieve_geometry(window_category=window_category)
         if window_category == 'root':
             self.mvc_view.geometry(geometry)
@@ -1327,12 +1324,13 @@ class DCCMControl:
         connection_name = self.mvc_view.opm_connections.get()
         position_geometry = self.retrieve_geometry(window_category='root')
         geometry_offset = cbtk.geometry_offset(position_geometry, 50, 100)
-        confirm = CTkMessagebox(title='Confirm Action',
-                                message=f'Are you sure you wish to delete the "{connection_name}" entry?',
-                                options=['Yes', 'No'],
-                                master=self.mvc_view)
-
-        if confirm.choice == 'No':
+        confirm = cbtk.CBtkMessageBox(title='Confirm Action',
+                                      message=f'Are you sure you wish to delete the "{connection_name}" entry?',
+                                      button1_text='Yes',
+                                      button2_text='No',
+                                      geometry=f"300x140{geometry_offset}",
+                                      master=self.mvc_view)
+        if confirm.choice == 2:
             return
 
         self.mvc_module.mod_delete_connection(connection_identifier=connection_name)
@@ -1450,22 +1448,26 @@ class DCCMControl:
         that there isn't already a connection of the same identifier."""
         connection_identifier = self.mvc_view.ent_mod_connection_identifier.get()
         check_exists = connection_record = self.mvc_module.connection_record(connection_identifier)
+        position_geometry = self.retrieve_geometry(window_category='toplevel')
+        geometry_offset = cbtk.geometry_offset(position_geometry, 50, 100)
         if check_exists and self.mvc_view.maintain_operation == 'Add New':
-            confirm = CTkMessagebox(title='Action Required',
-                                    message=f'A connection, "{connection_identifier}", already exists. Please '
-                                            f'choose another name or cancel.',
-                                    option_1='OK',
-                                    master=self.mvc_view.top_mod_connection)
+            confirm = cbtk.CBtkMessageBox(title='Action Required',
+                                          message=f'A connection, "{connection_identifier}", already exists. Please '
+                                                  f'choose another name or cancel.',
+                                          button1_text='OK',
+                                          geometry=f"300x100{geometry_offset}",
+                                          master=self.mvc_view.top_mod_connection)
             return
 
         oci_config = preference(db_file_path=self.db_file_path, scope='preference',
                                 preference_name='oci_config')
         if not oci_config and self.mvc_view.opm_mod_connection_type.get() == 'OCI Vault':
-            confirm = CTkMessagebox(title='Action Required',
-                                    message=f'To use the "OCI Vault" Management Type, you must first set your '
-                                            f'OCI Config Locn (directory) in Tools / Preferences',
-                                    option_1='OK',
-                                    master=self.mvc_view.top_mod_connection)
+            confirm = cbtk.CBtkMessageBox(title='Action Required',
+                                          message=f'To use the "OCI Vault" Management Type, you must first set your '
+                                                  f'OCI Config Locn (directory) in Tools / Preferences',
+                                          button1_text='OK',
+                                          geometry=f"300x140{geometry_offset}",
+                                          master=self.mvc_view.top_mod_connection)
             return
         # Now Insert (if Add New and doesn't exist already) or Update the record
         self.upsert_connection()
@@ -1480,6 +1482,8 @@ class DCCMControl:
         if self.wallet_pathname is None:
             self.wallet_pathname = ''
 
+        position_geometry = self.retrieve_geometry(window_category='toplevel')
+        geometry_offset = cbtk.geometry_offset(position_geometry, 50, 100)
         connections_record = {}
         # We don't presently deal with the description.
         connections_record["description"] = ''
@@ -1497,31 +1501,6 @@ class DCCMControl:
         connections_record["connection_message"] = self.mvc_view.tk_mod_connection_message.get()
         connections_record["connection_text_colour"] = self.mvc_view.opm_mod_connection_text_colour.get()
         status_text = ''
-
-        if not connections_record["connection_identifier"]:
-            status_text = 'You must enter a Connection Id.'
-            return status_text, connections_record
-
-        if not connections_record["db_account_name"]:
-            status_text = 'You must enter a database Username.'
-            return status_text, connections_record
-
-        if not connections_record["ocid"] and connections_record["connection_type"] == 'OCI Vault':
-            status_text = 'You must enter an OCID for an "OCI Vault" managed connection.'
-            self.mvc_view.mod_status_bar.set_status_text(
-                status_text=status_text)
-            return status_text, connections_record
-
-        if not connections_record["ocid"] and connections_record["connection_type"] == 'Legacy':
-            status_text = 'Please enter a password for the connection.'
-            self.mvc_view.mod_status_bar.set_status_text(
-                status_text=status_text)
-            return status_text, connections_record
-
-        if not connections_record["connect_string"]:
-            status_text = 'You must enter/select a database connect string.'
-            return status_text, connections_record
-
 
         if connections_record["wallet_required_yn"] == 'N':
             connections_record["wallet_location"] = ''
@@ -1565,6 +1544,17 @@ class DCCMControl:
                 status_text=status_text)
             return status_text, connections_record
 
+        if not connections_record["ocid"] and connections_record["connection_type"] == 'OCI Vault':
+            status_text = 'You must enter an OCID for an "OCI Vault" managed connection.'
+            self.mvc_view.mod_status_bar.set_status_text(
+                status_text=status_text)
+            return status_text, connections_record
+
+        if not connections_record["ocid"] and connections_record["connection_type"] == 'Legacy':
+            status_text = 'Please enter a password for the connection.'
+            self.mvc_view.mod_status_bar.set_status_text(
+                status_text=status_text)
+            return status_text, connections_record
 
         if len(connections_record["listener_port"]) > 0:
             try:
@@ -1595,29 +1585,20 @@ class DCCMControl:
 
         validation_status, connections_record = self.validate_mod_entries()
         if validation_status:
-            confirm = CTkMessagebox(master=self.mvc_view,
-                                    title='PAction Required',
-                                    message=validation_status,
-                                    option_1='OK')
-            if confirm.get() == 'OK':
-                return
+            confirm = cbtk.CBtkMessageBox(title='Action Required',
+                                          message=validation_status,
+                                          button1_text='OK',
+                                          geometry=popup_geometry,
+                                          master=self.mvc_view)
+            return
 
         oci_config = Path(preference(db_file_path=self.db_file_path,
                                      scope='preference',
                                      preference_name='oci_config'))
         if connections_record["connection_type"] == 'OCI Vault':
-            try:
-                password = oci_secret(config_file_pathname=oci_config,
-                                      oci_profile=connections_record['oci_profile'],
-                                      secret_id=connections_record['ocid'])
-            except Exception as e:
-                confirm = CTkMessagebox(master=self.mvc_view,
-                                        title='OCI Error Encountered',
-                                        icon='warning',
-                                        message=f'OCI Error encounter: {repr(e)}',
-                                        option_1='OK')
-                if confirm.get() == 'OK':
-                    pass
+            password = oci_secret(config_file_pathname=oci_config,
+                                  oci_profile=connections_record['oci_profile'],
+                                  secret_id=connections_record['ocid'])
         else:
             password = connections_record['ocid']
 
@@ -1637,23 +1618,23 @@ class DCCMControl:
         position_geometry = self.retrieve_geometry(window_category='toplevel')
 
         if wallet_required == "Y" and not port_open:
-            confirm = CTkMessagebox(master=self.mvc_view,
-                                    title='PAction Required',
-                                    message=f"Database server, {host}, cannot be reached on port "
-                                            f"{port} Connection may require ssh tunnel, VPN etc, to be "
-                                            "established.",
-                                    option_1='OK')
-            if confirm.get() == 'OK':
-                return
+            confirm = cbtk.CBtkMessageBox(title='Action Required',
+                                          message=f"Database server, {host}, cannot be reached on port "
+                                                  f"{port} Connection may require ssh tunnel, VPN etc, to be "
+                                                  "established.",
+                                          button1_text='OK',
+                                          geometry=popup_geometry,
+                                          master=self.mvc_view)
+            return
         elif not port_open:
-            confirm = CTkMessagebox(master=self.mvc_view,
-                                    title='PAction Required',
-                                    message=f"Database server, {host}, cannot be reached on port "
-                                            f"{port}. Please check that the database server is contactable and "
-                                            f"that the database, and database listener are started.",
-                                    option_1='OK')
-            if confirm.get() == 'OK':
-                return
+            confirm = cbtk.CBtkMessageBox(title='Action Required',
+                                          message=f"Database server, {host}, cannot be reached on port "
+                                                  f"{port}. Please check that the database server is contactable and "
+                                                  f"that the database, and database listener are started.",
+                                          button1_text='OK',
+                                          geometry=popup_geometry,
+                                          master=self.mvc_view)
+            return
 
         # TODO: Complete the hook in function test_db_connection and handling of returned messages (needs a status bar).
         if wallet_required == 'Y':
@@ -1672,36 +1653,30 @@ class DCCMControl:
         and their value assignments. This method is called from the modify_connection method."""
         validation_status, connections_record = self.validate_mod_entries()
         if validation_status:
-            confirm = CTkMessagebox(master=self.mvc_view.top_mod_connection,
-                                    title='Action Required',
-                                    message=validation_status,
-                                    option_1='OK')
-            if confirm.get() == 'OK':
-                return
+            return
         status = status_text = self.mvc_module.upsert_connection(connections_record=connections_record)
         position_geometry = self.retrieve_geometry(window_category='toplevel')
 
         geometry_offset = cbtk.geometry_offset(position_geometry, 50, 100)
         if validation_status:
-            confirm = CTkMessagebox(master=self.mvc_view.top_mod_connection,
-                                    title='Action Required',
-                                    message=status_text,
-                                    option_1='OK')
-            if confirm.get() == 'OK':
-                return
+            confirm = cbtk.CBtkMessageBox(title='Action Required',
+                                          message=status_text,
+                                          button1_text='OK',
+                                          geometry=f"300x160{geometry_offset}",
+                                          master=self.mvc_view.top_mod_connection)
+            return
 
         geometry_offset = cbtk.geometry_offset(position_geometry, 50, 100)
         if status:
             self.status_bar.set_status_text(
                 status_text=status_text)
 
-            confirm = CTkMessagebox(master=self.mvc_view.top_mod_connection,
-                                    title='Action Required',
-                                    message=status_text,
-                                    option_1='OK')
-            if confirm.get() == 'OK':
-                return
-
+            confirm = cbtk.CBtkMessageBox(title='Action Required',
+                                          message=status_text,
+                                          button1_text='OK',
+                                          geometry=f"300x140{geometry_offset}",
+                                          master=self.mvc_view.top_mod_connection)
+            return
         self.update_opm_connections()
         self.mvc_view.opm_connections.set(self.mvc_view.ent_mod_connection_identifier.get())
         self.mvc_view.btn_modify.configure(state=tk.NORMAL)
@@ -1757,15 +1732,14 @@ class DCCMControl:
         if not exists(connection_record["wallet_location"]) and connection_record["wallet_required_yn"] == 'Y':
             position_geometry = self.retrieve_geometry(window_category='toplevel')
             geometry_offset = cbtk.geometry_offset(position_geometry, 50, 50)
-
-            confirm = CTkMessagebox(master=self.mvc_view,
-                                    title='Action Required',
-                                    message=f'The associated wallet, {wallet_location}, for this '
-                                            f'connection, cannot be found. '
-                                            f'Please rectify.',
-                                    option_1='OK')
-            if confirm.get() == 'OK':
-                return
+            confirm = cbtk.CBtkMessageBox(title='Action Required',
+                                          message=f'The associated wallet, {wallet_location}, for this '
+                                                  f'connection, cannot be found. '
+                                                  f'Please rectify.',
+                                          button1_text='OK',
+                                          geometry=f"300x160{geometry_offset}",
+                                          master=self.mvc_view)
+            return
         if connection_record["wallet_required_yn"] == 'Y':
             tns_connect_dict = self.mvc_module.wallet_tns_connect_dict(
                 wallet_pathname=connection_record["wallet_location"])
@@ -1781,17 +1755,17 @@ class DCCMControl:
         """The ask_default_wallet_directory method is launched from the DCCM Preferences dialog. It in turn, launches
         a navigation window, allowing the user to navigate to, and select the user's wallet location. Once selected
         the selection is updated to the dialog window."""
-        default_wallet_directory_ = preference(db_file_path=db_file,
-                                               scope='preference',
-                                               preference_name='default_wallet_directory')
+        default_wallet_directory = preference(db_file_path=db_file,
+                                              scope='preference',
+                                              preference_name='default_wallet_directory')
         home_directory = Path(expanduser("~"))
-        if default_wallet_directory_:
-            initial_directory = default_wallet_directory_
+        if default_wallet_directory:
+            initial_directory = default_wallet_directory
         else:
             initial_directory = home_directory
-        default_wallet_directory_ = fd.askdirectory(initialdir=initial_directory)
-        if default_wallet_directory_:
-            self.default_wallet_directory = default_wallet_directory_
+        default_wallet_directory = fd.askdirectory(initialdir=initial_directory)
+        if default_wallet_directory:
+            self.default_wallet_directory = default_wallet_directory
             self.mvc_view.lbl_default_wallet_name.configure(text=f'{self.default_wallet_directory}')
 
     def ask_client_launch_directory(self):
@@ -1846,24 +1820,23 @@ class DCCMControl:
             except ValueError:
                 position_geometry = self.retrieve_geometry(window_category='toplevel')
                 geometry_offset = cbtk.geometry_offset(position_geometry, 50, 50)
-                confirm = CTkMessagebox(master=self.mvc_view,
-                                        title='Bad Import File',
-                                        message=f'The file, "{import_file}", does not appear to be a valid '
-                                                f'export file (JSON parse error).',
-                                        option_1='OK')
-                if confirm.get() == 'OK':
-                    return
+                confirm = cbtk.CBtkMessageBox(title='Bad Import File',
+                                              message=f'The file, "{import_file}", does not appear to be a valid '
+                                                      f'export file (JSON parse error).',
+                                              button1_text='OK',
+                                              geometry=f"300x160{geometry_offset}",
+                                              master=self.mvc_view.top_import)
+                return
             except IOError:
                 feedback = f'Failed to read file {import_file} - possible permissions issue.'
                 position_geometry = self.retrieve_geometry(window_category='toplevel')
                 geometry_offset = cbtk.geometry_offset(position_geometry, 50, 50)
-                confirm = CTkMessagebox(master=self.mvc_view.top_import,
-                                        title='Bad Import File',
-                                        message=f'Failed to open, "{import_file}" - possible permissions of '
-                                                f'disk space issue.',
-                                        option_1='OK')
-                if confirm.get() == 'OK':
-                    return
+                confirm = cbtk.CBtkMessageBox(title='File IO Error',
+                                              message=f'Failed to open, "{import_file}" - possible permissions of '
+                                                      f'disk space issue.',
+                                              button1_text='OK',
+                                              geometry=f"300x160{geometry_offset}",
+                                              master=self.mvc_view.top_import)
 
         source = None
         if len(import_json) == 2:
@@ -1872,13 +1845,13 @@ class DCCMControl:
         elif "connections" in import_json:
             source = "sql_developer"
         else:
-            confirm = CTkMessagebox(master=self.mvc_view.top_import,
-                                    title='Bad Import File',
-                                    message=f'The file, "{import_file}", is not a recognised export format '
-                                            f'export file.',
-                                    option_1='OK')
-            if confirm.get() == 'OK':
-                return
+            confirm = cbtk.CBtkMessageBox(title='Bad Import File',
+                                          message=f'The file, "{import_file}", is not a recognised export format '
+                                                  f'export file.',
+                                          button1_text='OK',
+                                          geometry=f"300x120{geometry_offset}",
+                                          master=self.mvc_view.top_import)
+            return
 
         self.mvc_view.lbl_imp_import_file.configure(text=import_file)
         password_hash = ''
@@ -1931,14 +1904,14 @@ class DCCMControl:
             try:
                 tns = zip.read('tnsnames.ora').decode(encoding="utf-8")
             except KeyError:
-                confirm = CTkMessagebox(master=self.mvc_view.top_mod_connection,
-                                        title='Template in Use',
-                                        message=f"Failed to find tnsnames.ora in the wallet file: "
-                                                f"{wallet_pathname}. This doesn't look like a valid wallet "
-                                                f"file.",
-                                        option_1='OK')
-                if confirm.get() == 'OK':
-                    return
+                confirm = cbtk.CBtkMessageBox(title='Template in Use',
+                                              message=f"Failed to find tnsnames.ora in the wallet file: "
+                                                      f"{wallet_pathname}. This doesn't look like a valid wallet "
+                                                      f"file.",
+                                              button1_text='OK',
+                                              geometry=f"300x140{geometry_offset}",
+                                              master=self.mvc_view.top_mod_connection)
+                return
         tns = tns.replace('\r', '')
         for line in tns.split('\n'):
             if len(line) == 0:
@@ -1968,15 +1941,7 @@ class DCCMControl:
             if "#listener_port#" in ssh_template:
                 return "#listener_port#"
             # Get the port and host/ip segment...
-            # address = ssh_template.split(' ')[-2]
-            address_pattern = r'\d.*:.*:\d*'
-            pattern = re.compile(address_pattern)
-            match = re.search(pattern, ssh_template)
-
-            if match is not None:
-                address = match.group()
-            else:
-                return 'ERROR'
+            address = ssh_template.split(' ')[-2]
             # Get the port from the 3rd component...
             template_listener_port = address.split(':')[2]
             try:
@@ -2239,21 +2204,21 @@ class DCCMControl:
         geometry_offset = cbtk.geometry_offset(position_geometry, 50, 50)
 
         if usage_list:
-            confirm = CTkMessagebox(master=self.mvc_view.top_tunnel,
-                                    title='Template in Use',
-                                    message=f'The template named "{template_code}", is currently, '
-                                            f'referenced by {usage_count} connections, and so cannot be deleted.',
-                                    option_1='OK')
-            if confirm.get() == 'OK':
-                return
-
-        confirm = CTkMessagebox(master=self.mvc_view.top_tunnel,
-                                title='Confirm Action',
-                                message=f'Are you sure you wish to delete the "{template_code}" template entry?',
-                                options=['Yes', 'No'])
-        if confirm.get() == 'No':
+            confirm = cbtk.CBtkMessageBox(title='Template in Use',
+                                          message=f'The template named "{template_code}", is currently, '
+                                                  f'referenced by {usage_count} connections, and so cannot be deleted.',
+                                          button1_text='OK',
+                                          geometry=f"300x140{geometry_offset}",
+                                          master=self.mvc_view.top_tunnel)
             return
-
+        confirm = cbtk.CBtkMessageBox(title='Confirm Action',
+                                      message=f'Are you sure you wish to delete the "{template_code}" template entry?',
+                                      button1_text='Yes',
+                                      button2_text='No',
+                                      geometry=f"300x120{geometry_offset}",
+                                      master=self.mvc_view.top_tunnel)
+        if confirm.choice == 2:
+            return
         delete_preference(db_file_path=db_file, scope='ssh_templates', preference_name=template_code)
         self.mvc_view.btn_tunnel_delete.configure(state=tk.DISABLED)
         self.mvc_view.btn_tunnel_save.configure(state=tk.DISABLED)
@@ -2273,24 +2238,24 @@ class DCCMControl:
         geometry_offset = cbtk.geometry_offset(position_geometry, 50, 50)
 
         if not template_code:
-            confirm = CTkMessagebox(master=self.mvc_view.top_tunnel,
-                                    title='Action Required',
-                                    message=f'You must enter a Template Name.',
-                                    option_1='OK')
-            if confirm.get() == 'OK':
-                return
+            confirm = cbtk.CBtkMessageBox(title='Action Required',
+                                          message=f'You must enter a Template Name.',
+                                          button1_text='OK',
+                                          geometry=f"300x120{geometry_offset}",
+                                          master=self.mvc_view.top_tunnel)
+            return
         if self.tunnel_operation == 'add':
             already_exists = preference(db_file_path=db_file,
                                         scope='ssh_templates',
                                         preference_name=template_code)
             if already_exists:
-                confirm = CTkMessagebox(master=self.mvc_view.top_tunnel,
-                                        title='Action Required',
-                                        message=f'A template named "{template_code}", already exists, '
-                                                f'"please chose a different name.',
-                                        option_1='OK')
-                if confirm.get() == 'OK':
-                    return
+                confirm = cbtk.CBtkMessageBox(title='Action Required',
+                                              message=f'A template named "{template_code}", already exists, '
+                                                      f'"please chose a different name.',
+                                              button1_text='OK',
+                                              geometry=f"300x120{geometry_offset}",
+                                              master=self.mvc_view.top_tunnel)
+                return
             self.mvc_view.btn_tunnel_save.configure(state=tk.DISABLED)
         upsert_preference(db_file_path=db_file, scope='ssh_templates',
                           preference_name=template_code,
@@ -2335,24 +2300,24 @@ class DCCMControl:
         geometry_offset = cbtk.geometry_offset(position_geometry, 50, 50)
 
         if not template_code:
-            confirm = CTkMessagebox(master=self.mvc_view.top_client_tool,
-                                    title='Action Required',
-                                    message=f'You must enter a Template Name.',
-                                    option_1='OK')
-            if confirm.get() == 'OK':
-                return
+            confirm = cbtk.CBtkMessageBox(title='Action Required',
+                                          message=f'You must enter a Template Name.',
+                                          button1_text='OK',
+                                          geometry=f"300x120{geometry_offset}",
+                                          master=self.mvc_view.top_client_tool)
+            return
         if self.cltool_operation == 'add':
             already_exists = preference(db_file_path=db_file,
                                         scope='client_tools',
                                         preference_name=template_code)
             if already_exists:
-                confirm = CTkMessagebox(master=self.mvc_view.top_client_tool,
-                                        title='Action Required',
-                                        message=f'A template named "{template_code}", already exists, '
-                                                f'"please chose a different name.',
-                                        option_1='OK')
-                if confirm.get() == 'OK':
-                    return
+                confirm = cbtk.CBtkMessageBox(title='Action Required',
+                                              message=f'A template named "{template_code}", already exists, '
+                                                      f'"please chose a different name.',
+                                              button1_text='OK',
+                                              geometry=f"300x120{geometry_offset}",
+                                              master=self.mvc_view.top_client_tool)
+                return
             self.mvc_view.btn_cltool_save.configure(state=tk.DISABLED)
         upsert_preference(db_file_path=db_file, scope='client_tools',
                           preference_name=template_code,
@@ -2380,18 +2345,20 @@ class DCCMControl:
         geometry_offset = cbtk.geometry_offset(position_geometry, 50, 50)
 
         if usage_list:
-            confirm = CTkMessagebox(master=self.mvc_view.top_client_tool,
-                                    title='Template in Use',
-                                    message=f'The template named "{template_code}", is currently, '
-                                            f'referenced by {usage_count} connections, and so cannot be deleted.',
-                                    option_1='OK')
-            if confirm.get() == 'OK':
-                return
-        confirm = CTkMessagebox(master=self.mvc_view.top_client_tool,
-                                title='Template in Use',
-                                message=f'Are you sure you wish to delete the "{template_code}" template entry?',
-                                options=['Yes', 'No'])
-        if confirm.choice == 'No':
+            confirm = cbtk.CBtkMessageBox(title='Template in Use',
+                                          message=f'The template named "{template_code}", is currently, '
+                                                  f'referenced by {usage_count} connections, and so cannot be deleted.',
+                                          button1_text='OK',
+                                          geometry=f"300x130{geometry_offset}",
+                                          master=self.mvc_view.top_client_tool)
+            return
+        confirm = cbtk.CBtkMessageBox(title='Confirm Action',
+                                      message=f'Are you sure you wish to delete the "{template_code}" template entry?',
+                                      button1_text='Yes',
+                                      button2_text='No',
+                                      geometry=f"300x120{geometry_offset}",
+                                      master=self.mvc_view.top_client_tool)
+        if confirm.choice == 2:
             return
         delete_preference(db_file_path=db_file, scope='client_tools', preference_name=template_code)
         self.mvc_view.btn_cltool_delete.configure(state=tk.DISABLED)
@@ -2537,6 +2504,8 @@ class DCCMControl:
         # read-only) or alternatively the #listener_port# string is in use by the template, and we allow the user to
         # enter and maintain the port number.
         self.toggle_mod_ssh_port()
+
+
 
 
 if __name__ == "__main__":

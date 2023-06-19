@@ -95,7 +95,8 @@ def shade_up(color: str, differential: int = 20, multiplier: int = 1):
         rgb_1 = color_rgb[1]
         rgb_2 = color_rgb[2]
 
-    if color_rgb[0] + compound_differential > 255 or color_rgb[1] + compound_differential > 255 or color_rgb[2] + compound_differential > 255:
+    if color_rgb[0] + compound_differential > 255 or color_rgb[1] + compound_differential > 255 or color_rgb[
+        2] + compound_differential > 255:
         # Don't perturb the colour balance
         return color
 
@@ -127,7 +128,8 @@ def shade_down(color: str, differential: int = 20, multiplier: int = 1):
         rgb_1 = color_rgb[1]
         rgb_2 = color_rgb[2]
 
-    if color_rgb[0] - compound_differential < 0 or color_rgb[1] - compound_differential < 0 or color_rgb[2] - compound_differential < 0:
+    if color_rgb[0] - compound_differential < 0 or color_rgb[1] - compound_differential < 0 or color_rgb[
+        2] - compound_differential < 0:
         # Don't perturb the colour balance
         return color
 
@@ -210,6 +212,7 @@ def theme_property_color(theme_file_path, widget_type: str, widget_property: str
     property_colour = theme_dict[widget_type][widget_property][mode_idx]
     return property_colour
 
+
 def theme_property(theme_file_path, widget_type: str, widget_property: str):
     """Based on the pathname to the CustomTkinter theme's JSON file, we return the property value, for the specified
     CustomTkinter widget property. """
@@ -219,7 +222,8 @@ def theme_property(theme_file_path, widget_type: str, widget_property: str):
     property_colour = theme_dict[widget_type][widget_property]
     return property_colour
 
-def theme_provenence_attribute(theme_file_path, attribute: str, value_on_missing:str = 'Unknown'):
+
+def theme_provenence_attribute(theme_file_path, attribute: str, value_on_missing: str = 'Unknown'):
     """Based on the pathname to the CustomTkinter theme's JSON file, we return the requested provenance value
     associated with the supplied attribute."""
     with open(theme_file_path) as json_file:
@@ -243,6 +247,7 @@ def wrap_string(text_string: str, wrap_width=80):
     for element in word_list:
         string = string + element + '\n'
     return string
+
 
 class CBtkMenu(tk.Menu):
     widget_registry = []
@@ -273,6 +278,34 @@ class CBtkMenu(tk.Menu):
                        font=(self._font_family, self._font_size, self._font_weight))
 
         CBtkMenu.widget_registry.append(self)
+
+    @classmethod
+    def update_widgets_mode(cls):
+        """Method to update all menu widgets following an appearance mode change."""
+        for widget in CBtkMenu.widget_registry:
+            try:
+                widget.update_appearance_mode()
+            except tk.TclError:
+                # print(f'Skipping widget configuration')
+                pass
+
+    def update_appearance_mode(self):
+        """Method called to scan through rendered widgets and update to a new appearance mode setting."""
+        mode = ctk.get_appearance_mode()
+        if mode == 'Light':
+            mode = 0
+        else:
+            mode = 1
+
+        fg_color = ThemeManager.theme["DropdownMenu"]["fg_color"][mode]
+        hover_color = ThemeManager.theme["DropdownMenu"]["hover_color"][mode]
+        text_color = ThemeManager.theme["DropdownMenu"]["text_color"][mode]
+
+        self.configure(bg=fg_color,
+                       fg=text_color,
+                       activebackground=hover_color,
+                       activeforeground=text_color)
+
 
 def themes_list(themes_dir: Path):
     """This function generates a list of theme names, based on the json files found in the  supplied themes dir
@@ -362,8 +395,6 @@ class CBtkMenu2(tk.Menu, CTkAppearanceModeBaseClass):
 class InvalidParameterValue(Exception):
     """Unexpected parameter value passed to a function."""
     pass
-
-
 
 
 class CBtkMessageBox(object):
@@ -642,7 +673,7 @@ def raise_tk_window(window_widget: tk.Toplevel):
         pass
 
 
-class CBtkStatusBar(tk.Entry):
+class CBtkStatusBar(ctk.CTkLabel):
     """Create a status bar on the parent window.
     Messages can be written to the status bar using the set_status_text method.
 
@@ -654,7 +685,7 @@ class CBtkStatusBar(tk.Entry):
 
     The default value for bg_color, is derived  as the "frame_low" colour property, from the active CustomTkinter theme.
 
-    The default value for fg_color, is derived  as the "text" colour property, from the active CustomTkinter theme
+    The default value for top_fg_color, is derived  as the "text" colour property, from the active CustomTkinter theme
 
     The class has a dependency on ThemeManager from the CustomTkinter package.
 
@@ -671,31 +702,31 @@ class CBtkStatusBar(tk.Entry):
                 pass
             self.top_client_tool.destroy()
 
-    """
-
-    def __init__(self,
-                 master,
-                 status_text_life=30,
-                 use_grid=True,
-                 fg_color=None,
-                 text_color=None):
-        """
         :param master: Master widget, to which to attach the status bar.
         :param status_text_life: Defines, in seconds, the default longevity of messages displayed to the status bar.
         :param use_grid: Set to true if using grid method (default). If specified as False, the pack method is used.
         :param fg_color: Hex colour code (#RRGGBB), defining the background colour of the status bar.
         :param text_color: Hex colour code (#RRGGBB), defining the text colour of the status bar.
         """
-        super().__init__()
+    widget_registry = []
+
+    def __init__(self,
+                 status_text_life=30,
+                 use_grid=True,
+                 fg_color=None,
+                 text_color=None,
+                 *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
 
         if fg_color is None:
-            fg_color = bg_color = self.get_color_from_name(widget_type='CTkFrame', widget_property='fg_color')
+            fg_color = "transparent"
         if text_color is None:
             text_color = self.get_color_from_name(widget_type='CTkLabel', widget_property='text_color')
 
         self._message_id = None
-        self._master = master
-        self._master.update_idletasks()
+        master = self.master
+        self.master.update_idletasks()
         grid_size = master.grid_size()
         grid_columns = grid_size[0]
         if grid_columns == 0:
@@ -703,14 +734,14 @@ class CBtkStatusBar(tk.Entry):
         grid_rows = grid_size[1]
         if grid_rows == 0:
             grid_rows = 1
-        self._master.update_idletasks()
-        self._app_width = self._master.winfo_width()
+        self.master.update_idletasks()
+        self._app_width = master.winfo_width()
         self._status_text_life = status_text_life
         assert isinstance(self._status_text_life, int)
 
         # TODO: Uncomment relief when fixed in CTkLabel
         self.widget = ctk.CTkLabel(master,
-                                   # relief=tk.SUNKEN,
+                                   fg_color=fg_color,
                                    text='',
                                    anchor='w')
         if text_color is not None:
@@ -724,14 +755,16 @@ class CBtkStatusBar(tk.Entry):
         else:
             self.widget.pack(fill="both", expand=0)
 
-        self._orig_app_width = self._master.winfo_width()
+        self._orig_app_width = master.winfo_width()
+
+        CBtkStatusBar.widget_registry.append(self)
 
     def auto_size_status_bar(self, event):
         # self._master.update_idletasks()
-        self._app_width = self._master.winfo_width()
+        self._app_width = self.master.winfo_width()
         if self._app_width > self._orig_app_width:
             self.widget.configure(width=self._app_width)
-            self._master.update_idletasks()
+            self.master.update_idletasks()
 
     def clear_status(self):
         self.set_status_text(status_text=' ')
@@ -763,6 +796,29 @@ class CBtkStatusBar(tk.Entry):
             message_life = 0
         if self._status_text_life:
             self._message_id = self.after(message_life * 1000, self.clear_status)
+
+    @classmethod
+    def update_widgets_mode(cls):
+        """Method to update all menu widgets following an appearance mode change."""
+        for widget in CBtkStatusBar.widget_registry:
+            try:
+                widget.update_appearance_mode()
+            except tk.TclError:
+                print(f'Skipping widget configuration')
+                pass
+
+    def update_appearance_mode(self):
+        """Method called to scan through rendered widgets and update to a new appearance mode setting."""
+        mode = ctk.get_appearance_mode()
+        print(f'Updating widget for mode {mode}')
+        fg_color = self.get_color_from_name(widget_type='CTkFrame', widget_property='top_fg_color')
+        text_color = self.get_color_from_name(widget_type='CTkLabel', widget_property='text_color')
+        before = self.cget('fg_color')
+        print(f'Before: {before}')
+        self.configure(fg_color=fg_color,
+                       text_color=text_color)
+        after = self.cget('fg_color')
+        print(f'After: {after}')
 
     def set_fg_color(self, fg_color):
         """The fg_color is the colour of the label component of the widget (i.e. surrounding the text)

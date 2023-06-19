@@ -13,7 +13,6 @@ try:
 except ModuleNotFoundError:
     gui_enabled = False
 
-
 from pathlib import Path
 import platform
 import os
@@ -21,6 +20,8 @@ from os.path import exists
 from os.path import expanduser
 import dccm_m as mod
 import cbtk_kit as cbtk
+from CTkMenuBar import *
+
 # from tkfontawesome import icon_to_image
 
 ENCODING = 'utf-8'
@@ -54,6 +55,7 @@ images_location = mod.images_location
 app_themes_dir = mod.themes_location
 
 db_file = mod.db_file
+
 
 def load_image(image_file: Path, image_size: int):
     """ load rectangular image from the file identified by the image_file pathname.
@@ -172,7 +174,7 @@ class DCCMView(ctk.CTk):
         self.config(menu=self.des_menu)
 
         # Now add a File sub-menu option
-        self.file_menu = tk.Menu(self.des_menu, tearoff=0)
+        self.file_menu = cbtk.CBtkMenu(self.des_menu, tearoff=0)
         self.des_menu.add_cascade(label='File', menu=self.file_menu)
         self.file_menu.add_command(label='Set as Default', command=self.mvc_controller.set_connection_as_current)
         self.file_menu.add_separator()
@@ -197,7 +199,7 @@ class DCCMView(ctk.CTk):
         self.file_menu.entryconfig('Copy Command', state="disabled")
 
         # Now add a Tools sub-menu option
-        self.tools_menu = tk.Menu(self.des_menu, tearoff=0)
+        self.tools_menu = cbtk.CBtkMenu(self.des_menu, tearoff=0)
         self.des_menu.add_cascade(label='Tools', menu=self.tools_menu)
         self.tools_menu.add_command(label='Preferences', command=self.launch_preferences)
         self.tools_menu.add_separator()
@@ -252,8 +254,8 @@ class DCCMView(ctk.CTk):
 
         widget_start_row = 0
 
-        lbl_theme = ctk.CTkLabel(master=frm_prefs_widgets, text='Theme')
-        lbl_theme.grid(row=widget_start_row, column=0, padx=(30, 0), pady=(15, 5), sticky='w')
+        lbl_theme = ctk.CTkLabel(master=frm_prefs_widgets, text='Theme', width=170, justify='right')
+        lbl_theme.grid(row=widget_start_row, column=0, padx=(5, 0), pady=(15, 5), sticky='w')
 
         if self.tooltips_enabled():
             lbl_theme_tooltip = ToolTip(lbl_theme,
@@ -268,11 +270,11 @@ class DCCMView(ctk.CTk):
         self.opm_app_theme = ctk.CTkOptionMenu(master=frm_prefs_widgets,
                                                variable=self.tk_app_theme,
                                                values=self.mvc_controller.app_themes_list)
-        self.opm_app_theme.grid(row=widget_start_row, column=1, padx=0, pady=(15, 10), sticky='w')
+        self.opm_app_theme.grid(row=widget_start_row, column=1, padx=(0, 50), pady=(15, 10), sticky='w')
         widget_start_row += 1
 
         lbl_mode = ctk.CTkLabel(master=frm_prefs_widgets, text='Appearance Mode')
-        lbl_mode.grid(row=widget_start_row, column=0, sticky='w')
+        lbl_mode.grid(row=widget_start_row, padx=5, column=0, sticky='w')
 
         # The app_mode holds the  CustomTkinter appearance mode (Dark / Light)
         self.tk_appearance_mode_var = tk.StringVar(value=self.mvc_controller.app_appearance_mode)
@@ -331,14 +333,15 @@ class DCCMView(ctk.CTk):
             widget_start_row += 1
 
         lbl_default_wallet_directory = ctk.CTkLabel(master=frm_prefs_widgets, text='Default Wallet Locn')
-        lbl_default_wallet_directory.grid(row=widget_start_row, column=0, sticky='w')
+        lbl_default_wallet_directory.grid(row=widget_start_row, padx=5, column=0, sticky='w')
         if self.tooltips_enabled():
             opm_app_theme_tooltip = ToolTip(lbl_default_wallet_directory,
                                             f"Set the default cloud wallet location.", TOOLTIP_DELAY)
 
-
         # folder_image = icon_to_image("folder", fill=icon_fill_colour, scale_to_width=32)
-        folder_image = load_image(images_location / 'wallet1.png', 40)
+        folder_image = ctk.CTkImage(light_image=Image.open(images_location / 'wallet1.png'),
+                                    dark_image=Image.open(images_location / 'wallet1.png'),
+                                    size=(40, 40))
         self.btn_default_wallet_directory = ctk.CTkButton(master=frm_prefs_widgets,
                                                           text='',
                                                           bg_color="transparent",
@@ -348,7 +351,7 @@ class DCCMView(ctk.CTk):
                                                           command=self.mvc_controller.ask_default_wallet_directory,
                                                           image=folder_image
                                                           )
-        self.btn_default_wallet_directory.grid(row=widget_start_row, column=1, padx=(0, 15), pady=(5, 0), sticky='w')
+        self.btn_default_wallet_directory.grid(row=widget_start_row, column=1, padx=(0, 15), pady=(10, 0), sticky='w')
         if self.tooltips_enabled():
             opm_app_theme_tooltip = ToolTip(self.btn_default_wallet_directory,
                                             f"Set the default cloud wallet location.",
@@ -356,12 +359,13 @@ class DCCMView(ctk.CTk):
         widget_start_row += 1
 
         self.lbl_default_wallet_name = ctk.CTkLabel(master=frm_prefs_widgets, font=SMALL_TEXT,
-                                                    text=f'{self.mvc_controller.default_wallet_directory}')
+                                                    text=f'{self.mvc_controller.default_wallet_directory}',
+                                                    width=220, justify='right')
         self.lbl_default_wallet_name.grid(row=widget_start_row, columnspan=2, column=0, padx=(130, 0), pady=0,
                                           sticky='w')
 
         widget_start_row += 1
-        lbl_oci_config = ctk.CTkLabel(master=frm_prefs_widgets, text='OCI Config Locn')
+        lbl_oci_config = ctk.CTkLabel(master=frm_prefs_widgets, text='OCI Config Locn', width=120, justify='right')
         lbl_oci_config.grid(row=widget_start_row, padx=(10, 0), column=0, sticky='w')
         if self.tooltips_enabled():
             opm_app_theme_tooltip = ToolTip(lbl_oci_config,
@@ -370,7 +374,9 @@ class DCCMView(ctk.CTk):
                                             f"connections.", TOOLTIP_DELAY)
 
         # config_image = icon_to_image("cog", fill=icon_fill_colour, scale_to_width=32)
-        config_image = load_image(images_location / 'cloud-settings1.png', 50)
+        config_image = ctk.CTkImage(light_image=Image.open(images_location / 'cloud-settings1.png'),
+                                    dark_image=Image.open(images_location / 'cloud-settings1.png'),
+                                    size=(50, 50))
         self.btn_oci_config = ctk.CTkButton(master=frm_prefs_widgets,
                                             text='',
                                             width=60,
@@ -390,7 +396,8 @@ class DCCMView(ctk.CTk):
         widget_start_row += 1
 
         self.lbl_oci_config = ctk.CTkLabel(master=frm_prefs_widgets, font=SMALL_TEXT,
-                                           text=f'{self.mvc_controller.oci_config}')
+                                           text=f'{self.mvc_controller.oci_config}',
+                                           width=60, justify='right')
         self.lbl_oci_config.grid(row=widget_start_row, columnspan=2, column=0, padx=(165, 0), pady=0, sticky='w')
 
         # Control buttons
@@ -983,7 +990,7 @@ class DCCMView(ctk.CTk):
         connections = self.mvc_controller.connections_dict()
         row = 0
         self.launch_buttons = {}
-        HEADING_UL=HEADING2 = ('Roboto', 14)
+        HEADING_UL = HEADING2 = ('Roboto', 14)
         lbl_connection_name = ctk.CTkLabel(master=frm_cscan_widgets, text='Connection Id', anchor='w',
                                            font=HEADING_UL)
         lbl_connection_name.grid(row=row, column=0, sticky='w', padx=10)
@@ -1105,13 +1112,13 @@ class DCCMView(ctk.CTk):
         # frm_connection_type = tk.LabelFrame(master=frm_root_widgets, text='Management Type')
         # frm_connection_type.grid(row=0, column=0)
 
-        border_width = 3
+        border_width = 1
 
         frm_root_buttons = ctk.CTkFrame(master=self, border_width=0)
-        frm_root_buttons.grid(row=0, column=0, sticky='wns', padx=(10, 5), pady=(10, 0), rowspan=3)
+        frm_root_buttons.grid(row=0, column=0, sticky='wns', padx=(10, 5), pady=(10, 10), rowspan=3)
 
         self.frm_right = ctk.CTkFrame(master=self, border_width=border_width)
-        self.frm_right.grid(row=0, column=1, padx=(5, 10), pady=(10, 0), sticky='ewns')
+        self.frm_right.grid(row=0, column=1, padx=(5, 10), pady=(10, 10), sticky='ewns')
         # self.frm_right.grid_columnconfigure(0, weight=1)
 
         self.frm_connection_type = ctk.CTkFrame(master=self.frm_right, border_width=border_width)
@@ -1137,7 +1144,7 @@ class DCCMView(ctk.CTk):
         self.frm_root_initial_dir.grid_remove()
 
         self.frm_root_ssh_tunnel = ctk.CTkFrame(master=self.frm_right, border_width=border_width)
-        self.frm_root_ssh_tunnel.grid(row=6, column=1, padx=10, pady=(5, 10), sticky='ew')
+        self.frm_root_ssh_tunnel.grid(row=6, column=1, padx=10, pady=10, sticky='ew')
         self.frm_root_ssh_tunnel.grid_remove()
 
         # Widgets
@@ -1331,7 +1338,7 @@ class DCCMView(ctk.CTk):
         return self.mvc_controller.enable_tooltips
 
     def maintain_connection(self, operation=None):
-        default_padx = (0, 5)
+        default_padx = 5
         default_pady = 10
 
         self.maintain_operation = operation
@@ -1477,8 +1484,9 @@ class DCCMView(ctk.CTk):
                                         f"cloud database connections.",
                                         TOOLTIP_DELAY)
         column += 1
-        # wallet_image = icon_to_image("wallet", fill=icon_fill_colour, scale_to_width=32)
-        wallet_image = load_image(images_location / 'wallet1.png', 25)
+        wallet_image = ctk.CTkImage(light_image=Image.open(images_location / 'wallet1.png'),
+                                    dark_image=Image.open(images_location / 'wallet1.png'),
+                                    size=(25, 25))
         self.btn_mod_wallet_location = ctk.CTkButton(master=self.frm_mod_tns_properties,
                                                      text='',
                                                      bg_color="transparent",
@@ -1602,7 +1610,7 @@ class DCCMView(ctk.CTk):
 
     def render_connection_widgets(self, connection_type: str = None):
         """Method to render the Connection Create / Modify Widgets"""
-        default_padx = (0, 5)
+        default_padx = (5, 5)
         default_pady = 10
 
         row = 0
@@ -1641,16 +1649,15 @@ class DCCMView(ctk.CTk):
         self.ent_mod_ocid.grid(row=row, column=column, padx=5, pady=5)
 
         column += 1
-        # bg_color = cbtk.get_color_from_name(name='frame_low')
-        # icon_fill_colour = cbtk.get_color_from_name(name='text')
 
-        # self.eye_image = icon_to_image("eye", fill=icon_fill_colour, scale_to_width=32)
-        self.eye_image = load_image(images_location / 'eye3.png', 30)
+        eye_image = ctk.CTkImage(light_image=Image.open(images_location / 'eye3.png'),
+                                 dark_image=Image.open(images_location / 'eye3.png'),
+                                 size=(30, 30))
         btn_eye = ctk.CTkButton(master=self.frm_mod_credentials, bg_color="transparent", fg_color="transparent",
                                 command=self.toggle_password_display,
                                 width=40,
                                 height=20,
-                                image=self.eye_image,
+                                image=eye_image,
                                 text=None)
         btn_eye.grid(row=row, column=column, padx=(0, 5), pady=5)
         if self.tooltips_enabled():
@@ -1695,7 +1702,7 @@ class DCCMView(ctk.CTk):
         row = 1
 
         self.lbl_mod_client_launch_directory = ctk.CTkLabel(master=self.frm_mod_gui_session, text='Initial Directory:')
-        self.lbl_mod_client_launch_directory.grid(row=row, column=0, padx=(0, 30), pady=default_pady, sticky='w')
+        self.lbl_mod_client_launch_directory.grid(row=row, column=0, padx=(5, 30), pady=default_pady, sticky='w')
         if self.tooltips_enabled():
             self.new_client_launch_directory_tooltip = ToolTip(self.lbl_mod_client_launch_directory,
                                                                'The directory from which to launch the client tool. '
@@ -1707,7 +1714,9 @@ class DCCMView(ctk.CTk):
                                                                TOOLTIP_DELAY)
         column += 1
 
-        folder_image = load_image(images_location / 'folder.png', 25)
+        folder_image = ctk.CTkImage(light_image=Image.open(images_location / 'folder.png'),
+                                    dark_image=Image.open(images_location / 'folder.png'),
+                                    size=(30, 30))
         self.btn_mod_launch_directory = ctk.CTkButton(master=self.frm_mod_gui_session,
                                                       text='',
                                                       bg_color="transparent",
