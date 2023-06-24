@@ -16,11 +16,10 @@ except ModuleNotFoundError:
 from pathlib import Path
 import platform
 import os
-from os.path import exists
 from os.path import expanduser
 import dccm_m as mod
 import cbtk_kit as cbtk
-from CTkMenuBar import *
+from CTkTable import *
 
 # from tkfontawesome import icon_to_image
 
@@ -81,8 +80,8 @@ class DCCMView(ctk.CTk):
         self.maintain_operation = None
         self.create_menu()
         self.default_connection_type = self.mvc_controller.default_connection_type
-        icon = tk.PhotoImage(file=images_location / 'dccm.png')
-        self.iconphoto(False, icon)
+        icon_image = tk.PhotoImage(file=images_location / 'dccm.png')
+        self.iconphoto(False, icon_image)
 
     def about(self):
 
@@ -118,7 +117,10 @@ class DCCMView(ctk.CTk):
         lbl_title = ctk.CTkLabel(master=frm_widgets, text=f'{__title__}')
         lbl_title.grid(row=0, column=0, pady=(5, 0), sticky='ew')
 
-        dccm_icon = load_image(images_location / 'dccm.png', 50)
+        # dccm_icon = load_image(images_location / 'dccm.png', 50)
+        dccm_icon = ctk.CTkImage(light_image=Image.open(images_location / 'dccm.png'),
+                                 dark_image=Image.open(images_location / 'dccm.png'),
+                                 size=(50, 50))
         btn_dccm_icon = ctk.CTkButton(master=frm_widgets,
                                       text='',
                                       width=60,
@@ -135,10 +137,10 @@ class DCCMView(ctk.CTk):
         lbl_ctk_version.grid(row=3, column=0, sticky='ew')
 
         lbl_author = ctk.CTkLabel(master=frm_widgets, text=f'Author: {__author__}')
-        lbl_author.grid(row=4, column=0, padx=(10, 0), sticky='e')
+        lbl_author.grid(row=4, column=0, padx=(10, 10), sticky='ew')
 
         lbl_logo = ctk.CTkLabel(master=frm_widgets, text=f'Logo: Jan Bajec')
-        lbl_logo.grid(row=5, column=0, padx=(10, 0), sticky='e')
+        lbl_logo.grid(row=5, column=0, padx=(10, 10), sticky='ew')
 
         btn_logo = ctk.CTkButton(master=frm_about_logo, text='', height=50, width=50,
                                  corner_radius=widget_corner_radius,
@@ -338,10 +340,9 @@ class DCCMView(ctk.CTk):
             opm_app_theme_tooltip = ToolTip(lbl_default_wallet_directory,
                                             f"Set the default cloud wallet location.", TOOLTIP_DELAY)
 
-        # folder_image = icon_to_image("folder", fill=icon_fill_colour, scale_to_width=32)
-        folder_image = ctk.CTkImage(light_image=Image.open(images_location / 'wallet1.png'),
-                                    dark_image=Image.open(images_location / 'wallet1.png'),
-                                    size=(40, 40))
+        folder_image = ctk.CTkImage(light_image=Image.open(images_location / 'wallet_lm.png'),
+                                    dark_image=Image.open(images_location / 'wallet_dm.png'),
+                                    size=(50, 50))
         self.btn_default_wallet_directory = ctk.CTkButton(master=frm_prefs_widgets,
                                                           text='',
                                                           bg_color="transparent",
@@ -351,7 +352,7 @@ class DCCMView(ctk.CTk):
                                                           command=self.mvc_controller.ask_default_wallet_directory,
                                                           image=folder_image
                                                           )
-        self.btn_default_wallet_directory.grid(row=widget_start_row, column=1, padx=(0, 15), pady=(10, 0), sticky='w')
+        self.btn_default_wallet_directory.grid(row=widget_start_row, column=1, padx=(0, 15), pady=(15, 0), sticky='w')
         if self.tooltips_enabled():
             opm_app_theme_tooltip = ToolTip(self.btn_default_wallet_directory,
                                             f"Set the default cloud wallet location.",
@@ -373,9 +374,8 @@ class DCCMView(ctk.CTk):
                                             f"CLI, and set this location, to use the OCI Vault type "
                                             f"connections.", TOOLTIP_DELAY)
 
-        # config_image = icon_to_image("cog", fill=icon_fill_colour, scale_to_width=32)
-        config_image = ctk.CTkImage(light_image=Image.open(images_location / 'cloud-settings1.png'),
-                                    dark_image=Image.open(images_location / 'cloud-settings1.png'),
+        config_image = ctk.CTkImage(light_image=Image.open(images_location / 'cloud_settings_lm.png'),
+                                    dark_image=Image.open(images_location / 'cloud_settings_dm.png'),
                                     size=(50, 50))
         self.btn_oci_config = ctk.CTkButton(master=frm_prefs_widgets,
                                             text='',
@@ -441,7 +441,10 @@ class DCCMView(ctk.CTk):
                                   text='Close')
 
         button_gap = 40
-        download_image = load_image(images_location / 'download1.png', 16)
+
+        download_image = ctk.CTkImage(light_image=Image.open(images_location / 'download_lm.png'),
+                                      dark_image=Image.open(images_location / 'download_dm.png'),
+                                      size=(16, 16))
         self.btn_exp_start = ctk.CTkButton(master=self.frm_exp_right,
                                            image=download_image,
                                            command=self.mvc_controller.begin_connection_export,
@@ -683,7 +686,9 @@ class DCCMView(ctk.CTk):
         self.lbl_imp_import_file.grid(row=row, column=0, padx=20, pady=(10, 0), sticky='w')
 
         row += 1
-        upload_image = load_image(images_location / 'upload1.png', 40)
+        upload_image = ctk.CTkImage(light_image=Image.open(images_location / 'upload_lm.png'),
+                                    dark_image=Image.open(images_location / 'upload_dm.png'),
+                                    size=(40, 40))
         self.btn_imp_import_file = ctk.CTkButton(master=self.frm_imp_left,
                                                  text='',
                                                  bg_color="transparent",
@@ -955,10 +960,10 @@ class DCCMView(ctk.CTk):
 
     def launch_connections_scan(self):
         """The launch_connections_scan creates a CTkToplevel and reports the connection availability of the user
-        connections, and provides a launch option for each of the connections which appear to be available."""
-        CSCAN_WIDTH = 1000
+        connections. It also provides a launch option for each all connections which appear to be available."""
+        CSCAN_WIDTH = 680
         CSCAN_HEIGHT = 470
-        widget_corner_radius = 5
+
         self.mvc_controller.status_bar.set_status_text(
             status_text='Scanning your connection ports, please wait...')
         position_geometry = self.mvc_controller.retrieve_geometry(window_category='toplevel')
@@ -976,14 +981,13 @@ class DCCMView(ctk.CTk):
         frm_cscan_main.columnconfigure(0, weight=1)
         frm_cscan_main.rowconfigure(0, weight=1)
 
-        frm_cscan_widgets = ctk.CTkFrame(master=frm_cscan_main)
+        frm_cscan_widgets = ctk.CTkScrollableFrame(master=frm_cscan_main)
         frm_cscan_widgets.grid(column=0, row=0, padx=10, pady=10, sticky='nsew')
 
         frm_buttons = ctk.CTkFrame(master=frm_cscan_main)
         frm_buttons.grid(column=0, row=1, padx=(10, 10), pady=(0, 10), sticky='ew')
 
         btn_ok = ctk.CTkButton(master=frm_buttons, text='OK', width=CSCAN_WIDTH - 30,
-                               corner_radius=widget_corner_radius,
                                command=self.top_cscan.destroy)
         btn_ok.grid(row=0, column=0, padx=(5, 5), pady=10)
 
@@ -991,33 +995,35 @@ class DCCMView(ctk.CTk):
         row = 0
         self.launch_buttons = {}
         HEADING_UL = HEADING2 = ('Roboto', 14)
-        lbl_connection_name = ctk.CTkLabel(master=frm_cscan_widgets, text='Connection Id', anchor='w',
-                                           font=HEADING_UL)
-        lbl_connection_name.grid(row=row, column=0, sticky='w', padx=10)
-        lbl_account_name = ctk.CTkLabel(master=frm_cscan_widgets, text='DB Account', anchor='w', font=HEADING_UL)
-        lbl_account_name.grid(row=row, column=2, sticky='w', padx=(0, 10))
-        lbl_connect_string = ctk.CTkLabel(master=frm_cscan_widgets, text='Connect String', anchor='w',
-                                          font=HEADING_UL)
-        lbl_connect_string.grid(row=row, column=3, sticky='w', padx=(0, 10))
-        lbl_probe_header = ctk.CTkLabel(master=frm_cscan_widgets, text='Contactable', anchor='w',
-                                        font=HEADING_UL)
-        lbl_probe_header.grid(row=row, column=4, sticky='w', padx=(15, 10))
-        lbl_launch = ctk.CTkLabel(master=frm_cscan_widgets, text='Launch', anchor='w',
-                                  font=HEADING_UL)
-        lbl_launch.grid(row=row, column=5, padx=(0, 50), pady=(0, 5), sticky='w')
+
+        connection_table = [['Connection Id', 'DB Account', 'Connect String', 'Contactable', 'Launch']]
+
+        button_fg_color = cbtk.get_color_from_name(widget_type='CTkButton', widget_property='fg_color')
+        button_hover_color = cbtk.get_color_from_name(widget_type='CTkButton', widget_property='hover_color')
+        self.tbv_connections = CTkTable(master=frm_cscan_widgets,
+                                        values=connection_table,
+                                        hover=True,
+                                        anchor='w',
+                                        corner_radius=5,
+                                        header_color=button_fg_color)
+        self.tbv_connections.grid(row=0, column=0)
+
         row += 1
-        for connection_name in connections.keys():
+        for i, connection_name in enumerate(connections.keys(), start=1):
             db_account_name = connections[connection_name]["db_account_name"]
             connect_string = connections[connection_name]["connect_string"]
             start_directory = connections[connection_name]["start_directory"]
-            lbl_connection_name = ctk.CTkLabel(master=frm_cscan_widgets, text=connection_name, anchor='w')
-            lbl_connection_name.grid(row=row, column=0, sticky='w', padx=10, pady=(0, 5))
-            lbl_account_name = ctk.CTkLabel(master=frm_cscan_widgets, text=db_account_name, anchor='w')
-            lbl_account_name.grid(row=row, column=2, sticky='w', padx=(0, 10), pady=(0, 5))
-            lbl_connect_string = ctk.CTkLabel(master=frm_cscan_widgets, text=connect_string, anchor='w')
-            lbl_connect_string.grid(row=row, column=3, sticky='w', padx=(0, 10), pady=(0, 5))
-            lbl_start_directory = ctk.CTkLabel(master=frm_cscan_widgets, text=start_directory, anchor='w')
-            # lbl_start_directory.grid(row=row, column=3, sticky='w')
+            table_row = [connection_name, db_account_name, connect_string, '', '']
+            self.tbv_connections.add_row(values=table_row)
+            self.tbv_connections.edit_row(i, state=ctk.DISABLED)
+
+        # Second loop. We need this because we can't combine add_row and insert in
+        # the same loop (current limitation on CTkTable).
+        for i, connection_name in enumerate(connections.keys(), start=1):
+            db_account_name = connections[connection_name]["db_account_name"]
+            connect_string = connections[connection_name]["connect_string"]
+            start_directory = connections[connection_name]["start_directory"]
+
             try:
                 host, port = self.mvc_controller.resolve_connect_host_port(connection_name=connection_name)
             except FileNotFoundError:
@@ -1033,63 +1039,66 @@ class DCCMView(ctk.CTk):
                 port_open = False
 
             if not stale_connection:
-                icon = load_image(images_location / 'launch1.png', 20)
+                stale_icon = ctk.CTkImage(light_image=Image.open(images_location / 'launch_lm.png'),
+                                          dark_image=Image.open(images_location / 'launch_dm.png'),
+                                          size=(20, 20))
             else:
-                icon = load_image(images_location / 'x-bones1.png', 20)
+                stale_icon = ctk.CTkImage(light_image=Image.open(images_location / 'x_bones_lm.png'),
+                                          dark_image=Image.open(images_location / 'x_bones_dm.png'),
+                                          size=(20, 20))
 
             if port_open:
                 tk_state = tk.NORMAL
                 tooltip_text = 'Database server appears to be contactable.'
-                icon_file = 'tick1.png'
+                hover_colour = button_hover_color
+                icon_file_lm = 'tick_lm.png'
+                icon_file_dm = 'tick_dm.png'
             elif not port_open and stale_connection:
                 tk_state = tk.DISABLED
-                icon_file = 'q-mark1.png'
+                hover_colour = button_fg_color
+                icon_file_lm = 'q_mark_lm.png'
+                icon_file_dm = 'q_mark_dm.png'
                 tooltip_text = 'Connection entry appears to be stale. Has an associated tnsnames.ora entry been ' \
                                'deleted? '
             else:
                 tooltip_text = 'Database server cannot be contacted.'
+                hover_colour = button_fg_color
                 tk_state = tk.DISABLED
+                icon_file_lm = 'cross_lm.png'
+                icon_file_dm = 'cross_dm.png'
 
-                icon_file = 'cross1.png'
-            icon_image = load_image(images_location / icon_file, 16)
-            btn_probe = ctk.CTkButton(master=frm_cscan_widgets,
-                                      width=20,
-                                      height=20,
-                                      fg_color="transparent",
-                                      bg_color="transparent",
-                                      state=tk.DISABLED,
-                                      image=icon_image,
-                                      text='')
-            btn_probe.grid(row=row, column=4, padx=(0, 50), pady=(0, 5))
+            icon_image = ctk.CTkImage(light_image=Image.open(images_location / icon_file_lm),
+                                      dark_image=Image.open(images_location / icon_file_dm),
+                                      size=(16, 16))
+
+            self.tbv_connections.insert(i, 3, '', width=40, image=icon_image, anchor='c')
+            self.tbv_connections.insert(i, 4, '', width=40, image=stale_icon, anchor='c', state=tk_state,
+                                        hover_color=hover_colour,
+                                        command=lambda connection=connection_name:
+                                        self.mvc_controller.launch_client_connection(connection_name=connection))
+
             if self.tooltips_enabled():
-                self.probe_tooltip = ToolTip(btn_probe, tooltip_text, TOOLTIP_DELAY)
+                self.probe_tooltip = ToolTip(self.tbv_connections.frame[i, 3], tooltip_text, TOOLTIP_DELAY)
 
-            launch = load_image(images_location / 'launch1.png', 16)
-            self.launch_buttons[row] = ctk.CTkButton(master=frm_cscan_widgets,
-                                                     text=None,
-                                                     image=launch,
-                                                     border_width=2,
-                                                     fg_color="transparent",
-                                                     bg_color="transparent",
-                                                     width=50,
-                                                     state=tk_state,
-                                                     command=lambda connection=connection_name:
-                                                     self.mvc_controller.launch_client_connection(
-                                                         connection_name=connection))
+            if self.tooltips_enabled() and port_open:
+                tooltip_text = 'Click to launch connection.'
+                self.launch_tooltip = ToolTip(self.tbv_connections.frame[i, 4], tooltip_text, TOOLTIP_DELAY)
 
-            self.launch_buttons[row].grid(row=row, column=5, padx=(5, 50), pady=(0, 5), sticky='w')
+            launch = ctk.CTkImage(light_image=Image.open(images_location / 'launch_lm.png'),
+                                  dark_image=Image.open(images_location / 'launch_dm.png'),
+                                  size=(16, 16))
+
 
             if tk_state == tk.DISABLED:
                 availability = ' [ disabled ]'
             else:
                 availability = ''
-            if self.tooltips_enabled():
-                self.launch_tooltip = ToolTip(self.launch_buttons[row],
-                                              f'Launch this connection{availability}.', TOOLTIP_DELAY)
+
 
             row += 1
-
-            self.top_cscan.grab_set()
+        self.tbv_connections.edit_column(3, width=40)
+        self.tbv_connections.edit_column(4, width=40)
+        self.top_cscan.grab_set()
 
     def save_tunnel(self):
         """Save the new/modified ssh tunnelling template."""
@@ -1484,8 +1493,8 @@ class DCCMView(ctk.CTk):
                                         f"cloud database connections.",
                                         TOOLTIP_DELAY)
         column += 1
-        wallet_image = ctk.CTkImage(light_image=Image.open(images_location / 'wallet1.png'),
-                                    dark_image=Image.open(images_location / 'wallet1.png'),
+        wallet_image = ctk.CTkImage(light_image=Image.open(images_location / 'wallet_lm.png'),
+                                    dark_image=Image.open(images_location / 'wallet_dm.png'),
                                     size=(25, 25))
         self.btn_mod_wallet_location = ctk.CTkButton(master=self.frm_mod_tns_properties,
                                                      text='',
@@ -1650,8 +1659,8 @@ class DCCMView(ctk.CTk):
 
         column += 1
 
-        eye_image = ctk.CTkImage(light_image=Image.open(images_location / 'eye3.png'),
-                                 dark_image=Image.open(images_location / 'eye3.png'),
+        eye_image = ctk.CTkImage(light_image=Image.open(images_location / 'eye_lm.png'),
+                                 dark_image=Image.open(images_location / 'eye_dm.png'),
                                  size=(30, 30))
         btn_eye = ctk.CTkButton(master=self.frm_mod_credentials, bg_color="transparent", fg_color="transparent",
                                 command=self.toggle_password_display,
