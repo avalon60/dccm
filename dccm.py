@@ -1332,7 +1332,7 @@ class DCCMControl:
                                 options=['Yes', 'No'],
                                 master=self.mvc_view)
 
-        if confirm.choice == 'No':
+        if confirm == 'No':
             return
 
         self.mvc_module.mod_delete_connection(connection_identifier=connection_name)
@@ -2391,7 +2391,7 @@ class DCCMControl:
                                 title='Template in Use',
                                 message=f'Are you sure you wish to delete the "{template_code}" template entry?',
                                 options=['Yes', 'No'])
-        if confirm.choice == 'No':
+        if confirm == 'No':
             return
         delete_preference(db_file_path=db_file, scope='client_tools', preference_name=template_code)
         self.mvc_view.btn_cltool_delete.configure(state=tk.DISABLED)
