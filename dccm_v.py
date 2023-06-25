@@ -20,6 +20,7 @@ from os.path import expanduser
 import dccm_m as mod
 import cbtk_kit as cbtk
 from CTkTable import *
+from CTkListbox import *
 
 # from tkfontawesome import icon_to_image
 
@@ -342,13 +343,14 @@ class DCCMView(ctk.CTk):
 
         folder_image = ctk.CTkImage(light_image=Image.open(images_location / 'wallet_lm.png'),
                                     dark_image=Image.open(images_location / 'wallet_dm.png'),
-                                    size=(50, 50))
+                                    size=(35, 35))
         self.btn_default_wallet_directory = ctk.CTkButton(master=frm_prefs_widgets,
                                                           text='',
                                                           bg_color="transparent",
                                                           fg_color="transparent",
                                                           width=60,
                                                           height=30,
+                                                          border_width=0,
                                                           command=self.mvc_controller.ask_default_wallet_directory,
                                                           image=folder_image
                                                           )
@@ -376,13 +378,14 @@ class DCCMView(ctk.CTk):
 
         config_image = ctk.CTkImage(light_image=Image.open(images_location / 'cloud_settings_lm.png'),
                                     dark_image=Image.open(images_location / 'cloud_settings_dm.png'),
-                                    size=(50, 50))
+                                    size=(40, 40))
         self.btn_oci_config = ctk.CTkButton(master=frm_prefs_widgets,
                                             text='',
                                             width=60,
                                             bg_color="transparent",
                                             fg_color="transparent",
                                             height=30,
+                                            border_width=0,
                                             command=self.mvc_controller.get_oci_config,
                                             image=config_image
                                             )
@@ -411,7 +414,7 @@ class DCCMView(ctk.CTk):
     def launch_export_dialog(self):
         """Launch the export connections dialog (CTkToplevel)."""
         EXPORT_WIDTH = 600
-        EXPORT_HEIGHT = 200
+        EXPORT_HEIGHT = 310
         border_width = 2
         pad_y = (20, 0)
         pad_y_button_group = (10, 0)
@@ -440,7 +443,7 @@ class DCCMView(ctk.CTk):
                                   command=self.on_close_exports,
                                   text='Close')
 
-        button_gap = 40
+        button_gap = 98
 
         download_image = ctk.CTkImage(light_image=Image.open(images_location / 'download_lm.png'),
                                       dark_image=Image.open(images_location / 'download_dm.png'),
@@ -451,20 +454,35 @@ class DCCMView(ctk.CTk):
                                            text='Export')
         self.btn_exp_start.grid(row=0, column=0, padx=10, pady=(10, button_gap), sticky='e')
 
-        btn_close.grid(row=1, column=0, padx=10, pady=(button_gap, 10), sticky='w')
+        btn_close.grid(row=1, column=0, padx=10, pady=(button_gap, 20), sticky='w')
 
-        row = 0
         self.lbl_export_connections = ctk.CTkLabel(master=self.frm_exp_left,
                                                    text='Connection to Export:')
-        self.lbl_export_connections.grid(row=row, column=0, padx=20, pady=(10, 0), sticky='w')
-        row += 1
+        self.lbl_export_connections.grid(row=0, column=0, padx=20, pady=(10, 0), sticky='w')
 
-        self.opm_export_connections = ctk.CTkOptionMenu(master=self.frm_exp_left,
-                                                        width=160,
-                                                        # command=self.mvc_controller.select_export_template
-                                                        )
-        self.opm_export_connections.grid(row=row, column=0, padx=(30, 10), pady=(2, 10))
-        row += 1
+        # self.lbx_export_connections = ctk.CTkOptionMenu(master=self.frm_exp_left,
+        self.lbx_export_connections = CTkListbox(master=self.frm_exp_left,
+                                                 width=160,
+                                                 multiple_selection=True,
+                                                 )
+        self.lbx_export_connections.grid(row=1, column=0, rowspan=4, padx=(10, 10), pady=0)
+
+        self.lbl_export_password = ctk.CTkLabel(master=self.frm_exp_left,
+                                                text='Password:')
+        self.lbl_export_password.grid(row=0, column=1, padx=20, pady=(10, 0), sticky='w')
+        if self.tooltips_enabled():
+            self.ent_export_password_tooltip = ToolTip(self.lbl_export_password,
+                                                       'Enter a password, if you wish to include your connection '
+                                                       'passwords to the export.',
+                                                       TOOLTIP_DELAY)
+
+        self.ent_export_password = ctk.CTkEntry(master=self.frm_exp_left, placeholder_text='Enter password')
+        self.ent_export_password.grid(row=1, column=1, padx=(10, 10), pady=(2, 0), sticky='n')
+        self.ent_export_password.configure(show="*")
+
+        self.ent_export_password2 = ctk.CTkEntry(master=self.frm_exp_left, placeholder_text='Confirm password')
+        self.ent_export_password2.grid(row=2, column=1, padx=(10, 10), pady=(0, 60), sticky='n')
+        self.ent_export_password2.configure(show="*")
 
         self.tk_export_wallets = ctk.StringVar(master=self.frm_exp_left, value='N')
         self.swt_export_wallets = ctk.CTkSwitch(master=self.frm_exp_left,
@@ -473,33 +491,12 @@ class DCCMView(ctk.CTk):
                                                 onvalue='Y',
                                                 offvalue='N')
 
-        self.swt_export_wallets.grid(row=row, column=0, padx=10, pady=0)
+        self.swt_export_wallets.grid(row=2, column=1, padx=10, pady=(140, 5))
         if self.tooltips_enabled():
             self.swt_export_wallets_tooltip = ToolTip(self.swt_export_wallets,
                                                       'If enabled, connections which have an associated wallet, have '
                                                       'their wallet included to the export file.',
                                                       TOOLTIP_DELAY)
-
-        row = 0
-        self.lbl_export_password = ctk.CTkLabel(master=self.frm_exp_left,
-                                                text='Password:')
-        self.lbl_export_password.grid(row=row, column=1, padx=20, pady=(10, 0), sticky='w')
-        if self.tooltips_enabled():
-            self.ent_export_password_tooltip = ToolTip(self.lbl_export_password,
-                                                       'Enter a password, if you wish to include your connection '
-                                                       'passwords to the export.',
-                                                       TOOLTIP_DELAY)
-        row = 1
-
-        self.ent_export_password = ctk.CTkEntry(master=self.frm_exp_left, placeholder_text='Enter password')
-        self.ent_export_password.grid(row=row, column=1, padx=(30, 10), pady=(2, 10), sticky='n')
-        self.ent_export_password.configure(show="*")
-        row += 1
-
-        self.ent_export_password2 = ctk.CTkEntry(master=self.frm_exp_left, placeholder_text='Confirm password')
-        self.ent_export_password2.grid(row=row, column=1, padx=(30, 10), pady=(0, 30), sticky='n')
-        self.ent_export_password2.configure(show="*")
-        row += 1
 
         self.export_status_bar = cbtk.CBtkStatusBar(master=self.top_export)
 
@@ -640,13 +637,14 @@ class DCCMView(ctk.CTk):
         row += 1
         self.client_tool_status_bar = cbtk.CBtkStatusBar(master=self.top_client_tool)
 
+
     def launch_import_dialog(self):
         """Launch the import connections dialog (CTkToplevel)."""
-        IMPORT_WIDTH = 750
-        IMPORT_HEIGHT = 270
+        IMPORT_WIDTH = 650
+        IMPORT_HEIGHT = 480
         border_width = 2
-        pad_y = (20, 0)
-        pad_y_button_group = (10, 0)
+        button_gap = 175
+
         position_geometry = self.mvc_controller.retrieve_geometry(window_category='toplevel')
         self.top_import = ctk.CTkToplevel(master=self)
         self.top_import.title('DCCM Import')
@@ -668,7 +666,6 @@ class DCCMView(ctk.CTk):
 
         self.top_import.grab_set()
 
-        button_gap = 70
         self.btn_imp_start = ctk.CTkButton(master=self.frm_imp_right,
                                            command=self.mvc_controller.begin_connection_import,
                                            text='Import')
@@ -683,9 +680,8 @@ class DCCMView(ctk.CTk):
         row = 0
         self.lbl_imp_import_file = ctk.CTkLabel(master=self.frm_imp_left,
                                                 text='Select Import File:')
-        self.lbl_imp_import_file.grid(row=row, column=0, padx=20, pady=(10, 0), sticky='w')
+        self.lbl_imp_import_file.grid(row=row, column=0, padx=10, pady=(10, 0), sticky='w')
 
-        row += 1
         upload_image = ctk.CTkImage(light_image=Image.open(images_location / 'upload_lm.png'),
                                     dark_image=Image.open(images_location / 'upload_dm.png'),
                                     size=(40, 40))
@@ -693,48 +689,29 @@ class DCCMView(ctk.CTk):
                                                  text='',
                                                  bg_color="transparent",
                                                  fg_color="transparent",
-                                                 width=60,
+                                                 width=30,
                                                  height=30,
                                                  image=upload_image,
                                                  command=self.mvc_controller.ask_import_file)
-        self.btn_imp_import_file.grid(row=row, column=0, padx=(10, 0), pady=(0, 5))
-        # self.btn_mod_wallet_location.place(x=100, y=-100)
-        row += 1
+        self.btn_imp_import_file.grid(row=1, column=0, padx=20, pady=(0, 5), sticky='w')
+
 
         self.lbl_imp_import_file = ctk.CTkLabel(master=self.frm_imp_left, font=SMALL_TEXT,
                                                 text='(Import not selected)')
-        self.lbl_imp_import_file.grid(row=row, column=0, padx=(20, 20), pady=0, sticky='w')
-        row += 1
 
-        self.lbl_imp_import_password = ctk.CTkLabel(master=self.frm_imp_left,
-                                                    text='Password Required:')
-        self.lbl_imp_import_password.grid(row=row, column=0, padx=(10, 20), pady=(10, 0))
-        self.lbl_imp_import_password.grid_remove()
-        if self.tooltips_enabled():
-            self.ent_imp_import_password_tooltip = ToolTip(self.lbl_imp_import_password,
-                                                           'The export has password encrypted components. You must supply '
-                                                           'the password, to successfully import any connections.',
-                                                           TOOLTIP_DELAY)
-        row += 1
-        self.ent_imp_import_password = ctk.CTkEntry(master=self.frm_imp_left, placeholder_text='Enter password')
-        self.ent_imp_import_password.grid(row=row, column=0, padx=(30, 10), pady=(2, 10), sticky='n')
-        self.ent_imp_import_password.grid_remove()
-        self.ent_imp_import_password.configure(show="*")
-        row = 0
 
-        # Second column widgets...
+        self.lbl_imp_import_file.grid(row=2, column=0, padx=(10, 10), pady=0, sticky='w')
 
         self.lbl_imp_import_connections = ctk.CTkLabel(master=self.frm_imp_left,
-                                                       text='Connection to Import:')
-        self.lbl_imp_import_connections.grid(row=row, column=1, padx=20, pady=(10, 0), sticky='w')
-        row += 1
+                                                       text='Connections to Import:')
+        self.lbl_imp_import_connections.grid(row=3, column=0, padx=10, pady=(10, 0), sticky='w')
 
-        self.opm_imp_import_connections = ctk.CTkOptionMenu(master=self.frm_imp_left,
-                                                            width=160,
-                                                            # command=self.mvc_controller.select_import_template
-                                                            )
-        self.opm_imp_import_connections.grid(row=row, column=1, padx=(30, 10), pady=(2, 10))
-        row += 1
+        self.lbx_imp_import_connections = CTkListbox(master=self.frm_imp_left,
+                                                     width=160,
+                                                     multiple_selection=True)
+
+        self.lbx_imp_import_connections.grid(row=4, column=0, rowspan=3, padx=(10, 10), pady=(2, 10))
+
 
         self.tk_imp_merge = ctk.StringVar(master=self.frm_imp_left, value='N')
         self.swt_imp_merge = ctk.CTkSwitch(master=self.frm_imp_left,
@@ -743,14 +720,14 @@ class DCCMView(ctk.CTk):
                                            onvalue='Y',
                                            offvalue='N')
 
-        self.swt_imp_merge.grid(row=row, column=1, padx=(35, 5), pady=15)
+        self.swt_imp_merge.grid(row=0, column=1, padx=(35, 5), pady=(50, 5), sticky='s')
         if self.tooltips_enabled():
             self.swt_imp_merge_tooltip = ToolTip(self.swt_imp_merge,
                                                  'If enabled, this option causes the import to overwrite any of your '
                                                  'connections matched by those being imported.',
                                                  TOOLTIP_DELAY)
 
-        row += 1
+
         default_wallet_directory = default_wallet_directory = mod.preference(db_file_path=db_file,
                                                                              scope='preference',
                                                                              preference_name='default_wallet_directory')
@@ -762,7 +739,7 @@ class DCCMView(ctk.CTk):
                                                   variable=self.tk_remap_wallets,
                                                   onvalue='Y',
                                                   offvalue='N')
-        self.swt_imp_remap_wallet.grid(row=row, column=1, padx=(35, 5), pady=10)
+        self.swt_imp_remap_wallet.grid(row=1, column=1, padx=(35, 5), pady=10, sticky='s')
         if default_wallet_directory == 'None' or not default_wallet_directory:
             self.tk_imp_merge.set('N')
             self.swt_imp_remap_wallet.deselect()
@@ -783,7 +760,7 @@ class DCCMView(ctk.CTk):
                                                     variable=self.tk_imp_import_wallets,
                                                     onvalue='Y',
                                                     offvalue='N')
-        self.swt_imp_import_wallets.grid(row=row, column=1, padx=0, pady=10)
+        self.swt_imp_import_wallets.grid(row=2, column=1, padx=0, pady=10, sticky='s')
         if self.tooltips_enabled():
             self.swt_imp_remap_wallet_tooltip = ToolTip(self.swt_imp_import_wallets,
                                                         'If enabled, this causes the import to import any wallets '
@@ -792,7 +769,23 @@ class DCCMView(ctk.CTk):
                                                         'Tools > Preferences.',
                                                         TOOLTIP_DELAY)
 
-        row = 0
+        self.lbl_imp_import_password = ctk.CTkLabel(master=self.frm_imp_left,
+                                                    text='Password Required:')
+        self.lbl_imp_import_password.grid(row=3, column=1, padx=(10, 20), pady=(10, 0))
+        self.lbl_imp_import_password.grid_remove()
+
+        self.ent_imp_import_password = ctk.CTkEntry(master=self.frm_imp_left, placeholder_text='Enter password')
+        self.ent_imp_import_password.grid(row=4, column=1, padx=(30, 10), pady=(2, 10), sticky='n')
+
+        self.ent_imp_import_password.grid_remove()
+        self.ent_imp_import_password.configure(show="*")
+
+        if self.tooltips_enabled():
+            self.ent_imp_import_password_tooltip = ToolTip(self.lbl_imp_import_password,
+                                                           'The export has password encrypted components. You must supply '
+                                                           'the password, to successfully import any connections.',
+                                                           TOOLTIP_DELAY)
+
         self.imp_status_bar = cbtk.CBtkStatusBar(master=self.top_import)
 
     def launch_tunnel_templates(self):
@@ -1088,12 +1081,10 @@ class DCCMView(ctk.CTk):
                                   dark_image=Image.open(images_location / 'launch_dm.png'),
                                   size=(16, 16))
 
-
             if tk_state == tk.DISABLED:
                 availability = ' [ disabled ]'
             else:
                 availability = ''
-
 
             row += 1
         self.tbv_connections.edit_column(3, width=40)
