@@ -29,17 +29,17 @@
   },
   "CTkButton": {
     "corner_radius": 6,
-    "border_width": 0,
+    "border_width": 2,
     "fg_color": [
-      "#260063",
-      "#260063"
+      "#542e91",
+      "#4e288b"
     ],
     "hover_color": [
       "#63003d",
       "#63003d"
     ],
     "border_color": [
-      "#405366",
+      "#6640a3",
       "#405366"
     ],
     "text_color": [
@@ -362,7 +362,7 @@
     "date created": "Jun 02 2023 17:01:42",
     "last modified by": "clive",
     "created with": "CTk Theme Builder v2.1.0",
-    "last modified": "Jun 17 2023 15:24:12",
+    "last modified": "Jun 23 2023 19:26:05",
     "keystone colour": "#0C6300",
     "harmony method": "Split-complementary",
     "harmony differential": 8
