@@ -1395,8 +1395,11 @@ class DCCMControl:
         self.mvc_view.lbl_root_ssh_tunnel.grid()
 
         if connection_record:
-            max_len = max(len(connection_record["db_account_name"]), len(connection_record["connect_string"]))
-            self.mvc_view.geometry(f'{int(self.ROOT_WIDTH) + (5 * max_len)}x{self.ROOT_HEIGHT}')
+            connect_string = connection_record["connect_string"]
+            if len(connect_string) > 60:
+                connect_string = connect_string[:60] + '...'
+            max_len = max(len(connection_record["db_account_name"]), len(connect_string))
+            self.mvc_view.geometry(f'{int(self.ROOT_WIDTH) + (3 * max_len)}x{self.ROOT_HEIGHT}')
 
         if connection_identifier != '-- Connections --':
             self.mvc_view.btn_modify.configure(state=tk.NORMAL)
@@ -1427,8 +1430,11 @@ class DCCMControl:
             self.mvc_view.lbl_root_database_account_disp.configure(
                 text=f'{connection_record["db_account_name"]}')
 
+            connect_string = connection_record["connect_string"]
+            if len(connect_string) > 30:
+                connect_string = connect_string[:60] + '...'
             self.mvc_view.lbl_root_connect_string_disp.configure(
-                text=f'{connection_record["connect_string"]}')
+                text=f'{connect_string}')
 
             self.mvc_view.lbl_root_client_tool_disp.configure(
                 text=f'{connection_record["client_tool"]}')

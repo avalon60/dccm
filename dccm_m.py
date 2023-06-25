@@ -2005,6 +2005,13 @@ class DCCMModule:
                 connection_string=connection_record["connect_string"])
             host = connect_string_record["host"]
             port = int(connect_string_record["listener_port"])
+        elif "jdbc:oracle:thin:" in connection_record["connect_string"]:
+            port_entry = re.findall("port[\s]*=[\s]*\d{1,5}", connection_record["connect_string"])
+            host_entry = re.findall("host[\s]*=[\s]*[\w.\d-]*", connection_record["connect_string"])
+            port_entry = port_entry[0].split('=')
+            port = port_entry[1].replace(' ', '')
+            host_entry = host_entry[0].split('=')
+            host = host_entry[1].replace(' ', '')
         elif tns_admin is not None:
             tns_record = self.tns_names_entry(tns_names_pathname=tns_admin / 'tnsnames.ora',
                                               tns_alias=connection_record["connect_string"])
@@ -2040,8 +2047,16 @@ class DCCMModule:
         if tns_connect_string in tns_alias_list:
             return ''
 
+        if 'jdbc:oracle:thin' in tns_connect_string:
+            port_entry = re.findall("port[\s]*=[\s]*\d{1,5}", tns_connect_string)
+            host_entry = re.findall("host[\s]*=[\s]*[\w.\d-]*", tns_connect_string)
+            if len(host_entry) == 0 or len(port_entry) == 0:
+                return 'Unable to parse Oracle jdbc thin client connect string, host and/or port indeterminate.'
+            else:
+                return ''
+
         # Now check for EZConnect
-        if ":" in tns_connect_string:
+        if ":" in tns_connect_string and 'jdbc:oracle:thin' not in tns_connect_string:
             ez_pattern = r'[a-zA-Z0-9\.\/\?\:\-_]+:(\d)+[/][a-zA-Z0-9\.\/\?\:\-_]+'
             ez_match = re.search(pattern=ez_pattern, string=tns_connect_string, flags=re.IGNORECASE)
             if ez_match:
