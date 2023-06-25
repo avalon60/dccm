@@ -837,7 +837,6 @@ class DCCMModule:
             ssh_command = f'open -a Terminal.app {working_directory}; {ssh_command}'
         return '', ssh_command
 
-
     def default_connection(self):
         """Get the user's default connection identifier.
         :return string:
@@ -969,7 +968,8 @@ class DCCMModule:
                 wallet_path = connections_dict[connection]["wallet_location"]
                 wallet_skipped = False
                 if include_wallets and password and not Path(wallet_path).exists():
-                    feedback.append(f'Wallet skipped: Connection, "{connection}", references a missing wallet {wallet_path}')
+                    feedback.append(
+                        f'Wallet skipped: Connection, "{connection}", references a missing wallet {wallet_path}')
                     wallet_skipped = True
                     base64_wallet = ''
                 elif include_wallets and wallet_path and password:
@@ -1000,6 +1000,106 @@ class DCCMModule:
         export_header = {"data_source": 'dccm.py',
                          "version": __version__,
                          "export_match": connection_match,
+                         "password_hash": password_hash}
+        export_dict = [export_header, connections_dict]
+        try:
+            with open(dump_file, "w") as f:
+                json.dump(export_dict, f, indent=2)
+        except IOError:
+            feedback.append(f'Failed to write file {dump_file} - possible a permissions or free space issue.')
+            return
+        feedback.append('')
+        feedback.append(f'Export completed with {export_count} connections, and written to {dump_file}.')
+
+        with open(logfile, 'w') as lf:
+            for item in feedback:
+                # write each item on a new line
+                lf.write("%s\n" % item)
+
+        if run_mode == 'gui':
+            return f'{export_count} connections exported, logfile written to {logfile}.'
+        else:
+            return feedback
+
+    def export_connections_list(self,
+                                dump_file: str,
+                                run_mode: str,
+                                connections_list: list,
+                                password: str = '',
+                                include_wallets: bool = False):
+
+        """The export_connections method, services any GUI export requests.  A logfile is written, based upon the
+        name of the specified import filename, where the (.json) file extension is replaced with "_exp.log".
+
+        :param dump_file: Pathname to write the export file (str).
+        :param run_mode: (str) defines whether DCCM is running in "command", "gui", or "plugin" mode.
+        :param connections_list: (list) List of connection names to export.
+        :param password: str
+        :param include_wallets: (bool) Include wallet files in export (bool)
+        :return: list (non-gui mode) / str (gui mode)"""
+        connections_dict = {}
+        export_count = 0
+        feedback = []
+        logfile = dump_file.replace('.json', '_exp.log')
+        password_hash = None
+        connections_dict = {}
+        full_connections_dict = self.connections_dict()
+        feedback.append(f'Matching connections from: {", ".join(connections_list)}')
+        for connection in connections_list:
+            connections_dict[connection] = full_connections_dict[connection]
+
+        if password:
+            password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
+            feedback.append('Password supplied - connection passwords / secrets included and encrypted.')
+        else:
+            password_hash = ''
+            feedback.append('Password not supplied - connection passwords / secrets, not included to export.')
+
+        feedback.append('')
+        # If a password is supplied, encrypt the secrets.
+        if password:
+            for connection, connection_dict in connections_dict.items():
+                ocid = connections_dict[connection]["ocid"]
+                # We need to first decrypt the ocid / password, which is encrypted
+                # in our DCCM database. We can then encrypt based
+                system_uid = system_id()
+                connections_dict[connection]["ocid"] = kb_encrypt(data=ocid,
+                                                                  kb_password=password)
+                wallet_path = connections_dict[connection]["wallet_location"]
+                wallet_skipped = False
+                if include_wallets and password and not Path(wallet_path).exists():
+                    feedback.append(
+                        f'Wallet skipped: Connection, "{connection}", references a missing wallet {wallet_path}')
+                    wallet_skipped = True
+                    base64_wallet = ''
+                elif include_wallets and wallet_path and password:
+                    base64_wallet = base64_file(file_path=connections_dict[connection]["wallet_location"])
+                    base64_wallet = kb_encrypt(data=base64_wallet,
+                                               kb_password=password)
+                else:
+                    base64_wallet = ''
+                if wallet_skipped:
+                    feedback.append(f'Connection, "{connection}", exported without wallet...')
+                else:
+                    feedback.append(f'Connection, "{connection}", successfully exported...')
+                connections_dict[connection]["base64_wallet"] = base64_wallet
+                export_count += 1
+        else:
+            for connection, connection_dict in connections_dict.items():
+                ocid = connections_dict[connection]["ocid"]
+                connections_dict[connection]["ocid"] = ''
+
+                if include_wallets and connections_dict[connection]["wallet_location"] and password:
+                    base64_wallet = base64_file(file_path=connections_dict[connection]["wallet_location"])
+                else:
+                    base64_wallet = ''
+                connections_dict[connection]["base64_wallet"] = base64_wallet
+
+                export_count += 1
+
+        export_header = {"data_source": 'dccm.py',
+                         "version": __version__,
+                         "export_list": ', '.join(connections_list),
                          "password_hash": password_hash}
         export_dict = [export_header, connections_dict]
         try:
@@ -1194,6 +1294,249 @@ class DCCMModule:
                     continue
 
                 if not (connection_match.lower() == 'all' or connection_match == name):
+                    continue
+                connection_type = info.get("OracleConnectionType", '')
+                connection_record["ssh_tunnel_required_yn"] = 'N'
+                connection_record["listener_port"] = ''
+
+                if connection_type == 'TNS':
+                    connection_record["connect_string"] = info.get("customUrl", "")
+                    connection_record["wallet_required_yn"] = "N"
+                    connection_record["wallet_location"] = ''
+                elif connection_type == 'CLOUD':
+                    connection_record["wallet_required_yn"] = "Y"
+                    connection_record["connect_string"] = info.get("customUrl", "")
+
+                    wallet_location = info.get("sqldev.cloud.configfile", "")
+                    if remap_wallet_locations:
+                        default_wallet_directory = Path(preference(db_file_path=db_file,
+                                                                   scope='preference',
+                                                                   preference_name='default_wallet_directory'))
+                        wallet_basename = Path(os.path.basename(wallet_location))
+                        wallet_location = default_wallet_directory / wallet_basename
+                    connection_record["wallet_location"] = str(wallet_location)
+                else:
+                    connection_record["wallet_required_yn"] = "N"
+                    connection_record["wallet_location"] = ''
+                    service_name = info.get("serviceName", "")
+                    port = info.get("port", "")
+                    hostname = info.get("hostname", "")
+                    hostname = hostname.strip()
+                    connect_string = f'{hostname}:{port}/{service_name}'
+                    connection_record["connect_string"] = connect_string
+
+                connection_record["client_tool"] = 'SQLcl'
+                connection_record["connection_identifier"] = name
+                connection_record["database_type"] = "Oracle"
+                connection_record['connection_type'] = 'Legacy'
+                connection_record['db_account_name'] = info["user"]
+                connection_record['ocid'] = ''
+                connection_record['oci_profile'] = ''
+                connection_record["start_directory"] = ''
+                connection_record["client_tool_options"] = ''
+                connection_record["ssh_tunnel_code"] = ''
+                connection_record["description"] = ''
+                connection_record["ocid"] = 'Pwd update required.'
+
+                status = self.upsert_connection(connections_record=connection_record)
+                if status:
+                    feedback.append(status)
+                else:
+                    import_count += 1
+                    feedback.append(f'Connection, "{name}", successfully imported...')
+
+        feedback.append('')
+        feedback.append(f'Import from file, {dump_file} completed with {import_count} connections inserted / updated.')
+
+        with open(logfile, 'w') as lf:
+            for item in feedback:
+                # write each item on a new line
+                lf.write("%s\n" % item)
+
+        if run_mode == 'gui':
+            return f'{import_count} connections imported, logfile written to {logfile}.'
+        else:
+            return feedback
+
+    def tns_names_alias_list(self):
+        """The tns_names_alias_list method, interrogates the discovered tnsnames.ora file and produces a list of all
+        the connection aliases, defined therein.
+
+        :return: list"""
+        if tns_admin is None:
+            return []
+
+        tns_dict = self.tns_names_aliases(tns_names_pathname=Path(tns_admin) / 'tnsnames.ora')
+        return list(tns_dict.keys())
+
+    def import_connections_list(self,
+                                dump_file: str,
+                                run_mode: str,
+                                password: str,
+                                connections_list: list,
+                                merge_connections: bool = False,
+                                remap_wallet_locations: bool = True,
+                                import_wallets: bool = False):
+        """The import_connection_list method, services any GUI import requests. A logfile is written, based upon the
+        name of the specified import filename, where the (.json) file extension is replaced with "_imp.log".
+
+        Wallets are only imported where a default wallet location has been configured via the preferences option.
+
+        :param dump_file: str
+        :param run_mode: (str) defines whether DCCM is running in "command", "gui", or "plugin" mode.
+        :param connections_list: list
+        :param password: str
+        :param merge_connections: (bool)
+        :param remap_wallet_locations: (bool)
+        :param import_wallets: (bool)
+        :return: list (non-gui mode) / str (gui mode)"""
+
+        feedback = []
+        if not exists(dump_file):
+            feedback.append(f'The connections export file, "{dump_file}", cannot be found.')
+            feedback.append(f'Please rectify and try again.')
+            return feedback
+        logfile = dump_file.replace('.json', '_imp.log')
+        with open(dump_file) as json_file:
+            connection_record = {}
+            import_count = 0
+            password_hash = ''
+            try:
+                import_json = json.load(json_file)
+            except ValueError:
+                feedback.append(f'The file, "{json_file}", does not appear to be a valid '
+                                f'export file (JSON parse error).')
+                return feedback
+            except IOError:
+                feedback = f'Failed to read export file {dump_file} - possible permissions issue.'
+
+        # Now determine whether this is a native export or taken from SQL*Developer
+        # The format of a native export, differs starkly from that of
+        # SQl*Developer. A native export, appears as a list of 2 dictionaries (a header and body),
+        # whereas that of SQL Developer is one dictionary.
+        if len(import_json) == 2:
+            password_hash = None
+            if import_json[0]["data_source"] == 'dccm.py':
+                source = 'native'
+                header = import_json[0]
+                exp_version = header["version"]
+                # Grab the main body of the JSON, which contains the connection records
+                body = import_json[1]
+                if password_hash and not password:
+                    feedback.append(
+                        'Export is password protected and no password supplied - import operation terminated!')
+                    return feedback
+
+                password_hash = header["password_hash"]
+                expected_password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
+                if password_hash and expected_password_hash != password_hash:
+                    if run_mode == 'gui':
+                        return 'Invalid password supplied - import terminated!'
+                    elif password_hash:
+                        feedback.append('Invalid password supplied - import terminated!')
+                        return feedback
+        elif "connections" in import_json:
+            source = "sql_developer"
+            body = import_json
+        else:
+            feedback.append(f'The file {json_file} has an unrecognised format.')
+            feedback.append('Deploying chute and bailing out!')
+            if run_mode == 'gui':
+                return f'The file {json_file} has an unrecognised format.'
+            else:
+                return feedback
+
+        feedback.append(f'Matching connections from: {", ".join(connections_list)}')
+        if merge_connections:
+            feedback.append('Merge connections: enabled.')
+        else:
+            feedback.append('Merge connections: disabled.')
+
+        if remap_wallet_locations:
+            feedback.append('Wallet location remapping: enabled.')
+        else:
+            feedback.append('Wallet location remapping: disabled.')
+
+        feedback.append('')
+        if source == 'native':
+            for connection_name, connection_dict in body.items():
+                if connection_name not in connections_list:
+                    continue
+                check_record = self.connection_record(connection_identifier=connection_name)
+                if check_record and not merge_connections:
+                    feedback.append(f'Connection, "{connection_name}", skipped - entry already exists, and '
+                                    f'merge option not specified.')
+                    continue
+                connection_dict["connection_identifier"] = connection_name
+                wallet_location = connection_dict["wallet_location"]
+                default_wallet_directory = default_wallet_directory = preference(db_file_path=db_file,
+                                                                                 scope='preference',
+                                                                                 preference_name='default_wallet_directory')
+                if remap_wallet_locations:
+                    wallet_location = Path(os.path.basename(wallet_location.replace('\\', '/')))
+                    wallet_location = default_wallet_directory / wallet_location
+                else:
+                    wallet_location = connection_dict["wallet_location"]
+
+                if not default_wallet_directory and remap_wallet_locations:
+                    feedback.append(
+                        'ERROR: Cannot perform a default import without the default wallet location.')
+                    feedback.append(
+                        'ACTION: Either setup a default wallet location, via the application GUI, under '
+                        'Tools > Preferences,')
+                    feedback.append('        or use the "-I remap-off" option.')
+
+                    if run_mode == 'gui':
+                        return 'ERROR: Cannot perform a default import without the default wallet location.'
+                    else:
+                        return feedback
+
+                if password and password_hash:
+                    ocid = connection_dict["ocid"]
+                    ocid = kb_decrypt(encrypted_data=ocid, kb_password=password)
+                    connection_dict["ocid"] = ocid
+
+                if remap_wallet_locations and connection_dict["wallet_required_yn"] == 'Y':
+                    default_wallet_directory = default_wallet_directory.replace('\\', '/')
+                    # Include replace here for dealing with '\\' in Windows paths - these break basename
+                    wallet_basename = Path(os.path.basename(wallet_location))
+                    wallet_location = default_wallet_directory / wallet_basename
+                    connection_dict["wallet_location"] = str(wallet_location)
+                    # We only allow wallets to be unpacked to a default wallet location, so we do this here.
+                    base64_wallet = connection_dict["base64_wallet"]
+                    if base64_wallet and import_wallets:
+                        base64_wallet = kb_decrypt(encrypted_data=base64_wallet, kb_password=password)
+                        feedback.append(f'Decoding wallet for connection, "{connection_name}", to default wallet '
+                                        f'location, {default_wallet_directory}.')
+                        unpack_base64_to_file(file_pathname=str(wallet_location), base64_string=base64_wallet)
+                else:
+                    connection_dict["wallet_location"] = ''
+
+                if exp_version == '1.0.0':
+                    connection_dict["ssh_tunnel_required_yn"] = 'N'
+                    connection_dict["listener_port"] = ''
+                    connection_dict["ssh_tunnel_code"] = ''
+                    connection_dict["client_tool_options"] = ''
+
+                self.upsert_connection(connections_record=connection_dict)
+                feedback.append(f'Connection, "{connection_name}", successfully imported...')
+                import_count += 1
+        elif source == 'sql_developer':
+            connections = import_json["connections"]
+            for entry_dict in connections:
+                info = entry_dict["info"]
+                name = entry_dict["name"]
+                check_record = self.connection_record(connection_identifier=name)
+                if check_record and not merge_connections:
+                    feedback.append(f'Connection, "{name}", skipped - entry exists and merge option '
+                                    f'not specified.')
+                    continue
+
+                if info["RaptorConnectionType"] != 'Oracle':
+                    print(f'Unsupported connection of type, {info["RaptorConnectionType"]} - skipped')
+                    continue
+
+                if name not in connections_list:
                     continue
                 connection_type = info.get("OracleConnectionType", '')
                 connection_record["ssh_tunnel_required_yn"] = 'N'
@@ -1844,6 +2187,7 @@ class DCCMModule:
                              , connections_record)
             self.db_conn.commit()
             return ''
+
 
 if __name__ == "__main__":
     pass

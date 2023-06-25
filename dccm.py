@@ -1522,7 +1522,6 @@ class DCCMControl:
             status_text = 'You must enter/select a database connect string.'
             return status_text, connections_record
 
-
         if connections_record["wallet_required_yn"] == 'N':
             connections_record["wallet_location"] = ''
         else:
@@ -1564,7 +1563,6 @@ class DCCMControl:
             self.mvc_view.mod_status_bar.set_status_text(
                 status_text=status_text)
             return status_text, connections_record
-
 
         if len(connections_record["listener_port"]) > 0:
             try:
@@ -1833,7 +1831,10 @@ class DCCMControl:
         """The ask_import_file method, is called from the import (GUI) dialog, allowing the user to select a JSON file
         from which to import connections."""
         self.import_json = None
-        import_pathname = Path(fd.askopenfilename(filetypes=[('JSON', '*.json')]))
+        import_pathname = fd.askopenfilename(filetypes=[('JSON', '*.json')])
+        if len(import_pathname) == 0:
+            return
+        import_pathname = Path(import_pathname)
         connect_strings = []
         if import_pathname == Path('.'):
             return
@@ -1882,7 +1883,7 @@ class DCCMControl:
 
         self.mvc_view.lbl_imp_import_file.configure(text=import_file)
         password_hash = ''
-        connection_id_list = ['All']
+        connection_id_list = []
         if source == 'native':
             header = import_json[0]
             body = import_json[1]
@@ -1900,7 +1901,7 @@ class DCCMControl:
             self.mvc_view.imp_status_bar.set_status_text(
                 status_text='Selected file is a SQL Developer export - passwords will not be included during import.')
 
-        self.mvc_view.opm_imp_import_connections.configure(values=connection_id_list)
+        self.mvc_view.lbx_imp_import_connections.set_values(values=connection_id_list)
 
         if password_hash:
             self.mvc_view.lbl_imp_import_password.grid()
@@ -2102,28 +2103,28 @@ class DCCMControl:
     def launch_import_dialog(self):
         """The launch_import_dialog is the entry point to the GUI import interface."""
         self.mvc_view.launch_import_dialog()
-        connections_list = ['All']
-        self.mvc_view.opm_imp_import_connections.configure(values=connections_list)
-        self.mvc_view.opm_imp_import_connections.set('All')
+        connections_list = []
+        self.mvc_view.lbx_imp_import_connections.set_values(values=connections_list)
 
     def launch_export_dialog(self):
         """The launch_export_dialog is the entry point to the GUI export interface."""
         self.mvc_view.launch_export_dialog()
         connections_list = self.mvc_module.connection_identifiers_list()
-        connections_list = ['All'] + connections_list
-        self.mvc_view.opm_export_connections.configure(values=connections_list)
-        self.mvc_view.opm_export_connections.set('All')
+        # self.mvc_view.lbx_export_connections.configure(values=connections_list)
+        self.mvc_view.lbx_export_connections.set_values(values=connections_list)
 
     def begin_connection_import(self):
         """The begin_connection_import is called from the GUI import dialog. It performs some initial checks, ensuring
         for example, that an export file has been selected to import from, before going on to request of the module
         class instance, that the import request be actioned."""
-        import_connection = self.mvc_view.opm_imp_import_connections.get()
-        if import_connection == 'All':
-            import_connection = 'all'
+        import_connections = self.mvc_view.lbx_imp_import_connections.get()
 
         if self.import_pathname is None:
             self.mvc_view.imp_status_bar.set_status_text(status_text='You must select the Import File to import from.')
+            return
+
+        if import_connections is None:
+            self.mvc_view.imp_status_bar.set_status_text(status_text='You must select at least one connection to import.')
             return
 
         import_file = self.import_pathname
@@ -2146,13 +2147,13 @@ class DCCMControl:
         else:
             import_wallets = False
 
-        feedback = self.mvc_module.import_connections(dump_file=str(import_file),
-                                                      run_mode=run_mode,
-                                                      connection_match=import_connection,
-                                                      password=password,
-                                                      merge_connections=merge_connections,
-                                                      remap_wallet_locations=remap_wallets,
-                                                      import_wallets=import_wallets)
+        feedback = self.mvc_module.import_connections_list(dump_file=str(import_file),
+                                                           run_mode=run_mode,
+                                                           connections_list=import_connections,
+                                                           password=password,
+                                                           merge_connections=merge_connections,
+                                                           remap_wallet_locations=remap_wallets,
+                                                           import_wallets=import_wallets)
         self.mvc_view.imp_status_bar.set_status_text(status_text=feedback)
         self.update_opm_connections()
 
@@ -2160,8 +2161,14 @@ class DCCMControl:
         """The begin_connection_export is called from the GUI export dialog. When called it in turn has the user
         navigate to a directory, via a dialog, and enter an export filename to export to, before going on to request
         of the module class instance, that the import request be actioned."""
+        exp_connections_list = self.mvc_view.lbx_export_connections.get()
+        if exp_connections_list is None:
+            self.mvc_view.export_status_bar.set_status_text(
+                status_text=f'You must select, at least one connection to export.')
+            return
+
         exp_password = self.mvc_view.ent_export_password.get()
-        include_wallets_yn = self.mvc_view.tk_export_wallets.get()
+
         exp_password_confirm = self.mvc_view.ent_export_password2.get()
         if exp_password != exp_password_confirm:
             self.mvc_view.export_status_bar.set_status_text(
@@ -2179,16 +2186,17 @@ class DCCMControl:
         else:
             include_wallets = False
 
-        exp_file = fd.asksaveasfile(filetypes=[('JSON', '*.json')], defaultextension=".txt")
+        exp_file = fd.asksaveasfile(filetypes=[('JSON', '*.json')], defaultextension=".json")
         if exp_file is None:
             return
-        exp_connection = self.mvc_view.opm_export_connections.get()
 
-        feedback = self.mvc_module.export_connections(dump_file=exp_file.name,
-                                                      run_mode=run_mode,
-                                                      connection_match=exp_connection,
-                                                      password=exp_password,
-                                                      include_wallets=include_wallets)
+            return
+
+        feedback = self.mvc_module.export_connections_list(dump_file=exp_file.name,
+                                                           run_mode=run_mode,
+                                                           connections_list=exp_connections_list,
+                                                           password=exp_password,
+                                                           include_wallets=include_wallets)
         self.mvc_view.export_status_bar.set_status_text(
             status_text=feedback)
 
