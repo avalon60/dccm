@@ -220,7 +220,7 @@ class DCCMView(ctk.CTk):
     def launch_preferences(self):
         """Launch the preferences window (CTkTopLevel)."""
         PREFS_WIDTH = 400
-        PREFS_HEIGHT = 450
+        PREFS_HEIGHT = 500
         position_geometry = self.mvc_controller.retrieve_geometry(window_category='toplevel')
         self.top_prefs = ctk.CTkToplevel(master=self)
         self.top_prefs.title('DCCM Preferences')
@@ -1477,7 +1477,7 @@ class DCCMView(ctk.CTk):
         row += 1
         self.lbl_mod_wallet_location = ctk.CTkLabel(master=self.frm_mod_tns_properties, text='Select Wallet:',
                                                     anchor='e')
-        self.lbl_mod_wallet_location.grid(row=row, column=column, padx=default_padx, pady=(default_pady, 0), sticky='e')
+        self.lbl_mod_wallet_location.grid(row=row, column=column, padx=default_padx, pady=(5, 0), sticky='e')
         if self.tooltips_enabled():
             lbl_theme_tooltip = ToolTip(self.lbl_mod_wallet_location,
                                         f"Select a wallet for this connection. This is most commonly required for "
@@ -1486,16 +1486,17 @@ class DCCMView(ctk.CTk):
         column += 1
         wallet_image = ctk.CTkImage(light_image=Image.open(images_location / 'wallet_lm.png'),
                                     dark_image=Image.open(images_location / 'wallet_dm.png'),
-                                    size=(25, 25))
+                                    size=(30, 30))
         self.btn_mod_wallet_location = ctk.CTkButton(master=self.frm_mod_tns_properties,
                                                      text='',
                                                      bg_color="transparent",
                                                      fg_color="transparent",
                                                      width=60,
                                                      height=30,
+                                                     border_width=0,
                                                      image=wallet_image,
                                                      command=self.mvc_controller.ask_wallet_location)
-        self.btn_mod_wallet_location.grid(row=row, column=column, padx=0, pady=default_pady, sticky='sw')
+        self.btn_mod_wallet_location.grid(row=row, column=column, padx=0, pady=(10, 5), sticky='sw')
         # self.btn_mod_wallet_location.place(x=100, y=-100)
 
         column += 1
@@ -1504,7 +1505,7 @@ class DCCMView(ctk.CTk):
                                                    anchor='e')
         self.lbl_mod_connect_string.grid(row=row, column=column, padx=0, pady=(5, 0), sticky='w')
         if self.tooltips_enabled():
-            self.connection_identifier_tooltip = ToolTip(self.lbl_mod_connect_string,
+            self.connection_identifier_toolt9ip = ToolTip(self.lbl_mod_connect_string,
                                                          'The connect string or service name to connect'
                                                          'to the database with. Entries from a '
                                                          'tnsnames.ora may be specified/selected, '
@@ -1512,7 +1513,7 @@ class DCCMView(ctk.CTk):
                                                          TOOLTIP_DELAY)
         column += 1
         self.cmo_mod_connect_string = ctk.CTkComboBox(master=self.frm_mod_tns_properties,
-                                                      width=200,
+                                                      width=450,
                                                       values=[])
         self.cmo_mod_connect_string.grid(row=row, column=column, padx=default_padx, pady=(5, 0), sticky='w')
         self.cmo_mod_connect_string.set('')
@@ -1522,7 +1523,7 @@ class DCCMView(ctk.CTk):
 
         self.lbl_mod_wallet_name = ctk.CTkLabel(master=self.frm_mod_tns_properties, font=SMALL_TEXT,
                                                 text='')
-        self.lbl_mod_wallet_name.grid(row=row, column=column, padx=(150, 5), pady=0, sticky='w', columnspan=2)
+        self.lbl_mod_wallet_name.grid(row=row, column=column, padx=(75, 5), pady=(0, 5), sticky='w', columnspan=2)
 
         row += 1
         column = 0
@@ -1658,6 +1659,7 @@ class DCCMView(ctk.CTk):
                                 width=40,
                                 height=20,
                                 image=eye_image,
+                                border_width=0,
                                 text=None)
         btn_eye.grid(row=row, column=column, padx=(0, 5), pady=5)
         if self.tooltips_enabled():
