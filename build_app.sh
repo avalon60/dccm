@@ -25,4 +25,11 @@ APP_ENV=${PROG_PATH}/venv
 source ${APP_ENV}/bin/activate
 python get-pip.py
 ${APP_ENV}/bin/pip install -r requirements.txt
+
+if [ ! -f "dccm" ]
+then
+  echo "Linking dccm.sh to dccm"
+  ln dccm.sh dccm
+fi
+
 echo "Done."
