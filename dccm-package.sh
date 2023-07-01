@@ -46,6 +46,7 @@ do
 done
 
 app_vers=`app_version`
+./freeze.sh
 if [ "${VERSION_TAG}" != "${app_vers}" ]
 then
    echo -e "ERROR: A version tag of \"${VERSION_TAG}\", when ${ART_CODE}.py, thinks that it is version \"${app_vers}\""
