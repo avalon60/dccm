@@ -28,8 +28,8 @@ from shutil import which
 import base64
 
 ENCODING = 'utf-8'
-
 TOOLTIP_DELAY = 1
+db_file_found = None
 
 try:
     tns_admin = Path(os.environ["TNS_ADMIN"])
@@ -48,14 +48,15 @@ prog_path = os.path.realpath(__file__)
 prog = os.path.basename(__file__)
 # Get the data location, required for the config file etc
 app_home = Path(os.path.dirname(os.path.realpath(__file__)))
-data_location = app_home / 'data'
-images_location = app_home / 'images'
+app_assets = app_home / 'assets'
+data_location = app_assets / 'data'
+images_location = app_assets / 'images'
 temp_location = app_home / 'tmp'
 
 # The temp_tns_admin folder is reserved for unpacking wallets, so that
 # python-oracledb can be used to test database connections.
 temp_tns_admin = temp_location / 'tns_admin'
-themes_location = app_home / 'themes'
+themes_location = app_assets / 'themes'
 
 # Set the default export file names for connection and settings exports respectively.
 base_prog = prog.replace(".py", "")
@@ -116,7 +117,7 @@ def kb_decrypt(encrypted_data: str, kb_password: str):
 
 
 b_prog = prog.replace(".py", "")
-db_file = Path(f'{data_location}' + f'/.dccm.db')
+db_file = Path(f'{data_location}' + f'/dccm.db')
 
 
 def command_found(command: str):
@@ -133,6 +134,7 @@ def command_found(command: str):
             return True
     if exists(cmd):
         return True
+    os.system('echo $PATH > /tmp/path.txt')
     return which(cmd) is not None
 
 
@@ -245,13 +247,10 @@ def dump_preferences(db_file_path: Path):
                 "preference_value, "
                 "preference_attr1, "
                 "preference_attr2, "
-                "preference_attr3, "
-                "preference_attr4, "
-                "preference_attr5 "
+                "preference_attr3  "
                 "from preferences;")
     preferences = cur.fetchall()
     db_conn.close()
-    print(f'DBG: Preferences dump: {preferences}')
 
 
 def backup_preferences(save_file_name: Path):
@@ -270,6 +269,20 @@ def backup_preferences(save_file_name: Path):
     except IOError:
         feedback = f'Failed to write file {save_file_name} - possible a permissions or free space issue.'
     return feedback
+
+
+def new_preference_dict(scope: str, preference_name: str, data_type: str, preference_value,
+                        preference_attr1: str = '', preference_attr2: str = '', preference_attr3: str = ''):
+    """Creates a new preferences dictionary, which can then be used in conjunction with upsert_preference."""
+    preference_dict = {"scope": scope,
+                       "preference_name": preference_name,
+                       "data_type": data_type,
+                       "preference_value": preference_value,
+                       "preference_attr1": preference_attr1,
+                       "preference_attr2": preference_attr2,
+                       "preference_attr3": preference_attr3}
+
+    return preference_dict
 
 
 def restore_preferences(restore_file_name: Path):
@@ -291,12 +304,12 @@ def restore_preferences(restore_file_name: Path):
         scope = row["scope"]
         preference_name = row["preference_name"]
         preference_value = row["preference_value"]
-        preference_label = row["preference_label"]
-        upsert_preference(db_file_path=db_file,
-                          scope=scope,
-                          preference_name=preference_name,
-                          preference_value=preference_value,
-                          preference_label=preference_label)
+
+        pref_row = preference_row(db_file_path=db_file, scope=scope,
+                                  preference_name=preference_name)
+        pref_row["preference_value"] = preference_value
+        upsert_preference(db_file_path=db_file, preference_row_dict=pref_row)
+
     feedback.append(f'Restore complete.')
     return feedback
 
@@ -352,12 +365,9 @@ def preferences_dict_list(db_file_path: Path):
     cur.execute("select scope, "
                 "preference_name, "
                 "preference_value, "
-                "preference_label, "
                 "preference_attr1, "
                 "preference_attr2, "
-                "preference_attr3, "
-                "preference_attr4, "
-                "preference_attr5 "
+                "preference_attr3 "
                 "from preferences "
                 "order by scope, preference_name;")
     preferences = cur.fetchall()
@@ -395,6 +405,16 @@ def purge_temp_tns_admin():
         pass
 
 
+def db_file_exists(db_file_path: Path):
+    global db_file_found
+    if db_file_found is None:
+        if db_file_path.exists():
+            db_file_found = True
+        else:
+            db_file_found = False
+    return db_file_found
+
+
 def delete_preference(db_file_path: Path, scope: str, preference_name):
     """The preference function accepts a preference scope and preference name, and deleted the associated preference
     record from the DCCM database.
@@ -413,6 +433,28 @@ def delete_preference(db_file_path: Path, scope: str, preference_name):
     db_conn.close()
 
 
+def preference_row(db_file_path: Path, scope: str, preference_name) -> dict:
+    """The preference_setting function accepts a preference scope and preference name, and returns the associated row.
+
+    :return (dict): The preference row presented as a dictionary ("column name": value pairs)"""
+
+    if not db_file_exists(db_file_path=db_file_path):
+        print(f'Unable to locate database file located at {db_file_path}')
+        raise FileNotFoundError
+
+    db_conn = sqlite3.connect(db_file_path)
+    db_conn.row_factory = sqlite_dict_factory
+    cur = db_conn.cursor()
+
+    cur.execute("select scope, preference_name, preference_value, preference_attr1, preference_attr2, preference_attr3 "
+                "from preferences "
+                "where scope = :scope "
+                "and preference_name = :preference_name;", {"scope": scope, "preference_name": preference_name})
+    preference_row = cur.fetchone()
+    db_conn.close()
+    return preference_row
+
+
 def preferences_scope_list(db_file_path: Path, scope: str):
     """The preferences function, returns a list of lists. The inner lists, each represent a row from the preferences
     table, which are matched based on the scope passed to the function.
@@ -426,9 +468,7 @@ def preferences_scope_list(db_file_path: Path, scope: str):
                 "preference_value, "
                 "preference_attr1, "
                 "preference_attr2, "
-                "preference_attr3, "
-                "preference_attr4, "
-                "preference_attr5 "
+                "preference_attr3 "
                 "from preferences "
                 "where scope = :scope "
                 "order by preference_name;", {"scope": scope})
@@ -444,9 +484,54 @@ def preferences_scope_list(db_file_path: Path, scope: str):
     return list_of_preferences
 
 
+def preference_setting(db_file_path: Path, scope: str, preference_name,
+                       default: [str, int, Path] = 'NO_DATA_FOUND') -> any:
+    """The preference_setting function accepts a preference scope and preference name, and returns the associated
+    #preference value. The function also determines the datatype of the preference, and returns type accordingly.
+
+    This function deprecates the preference function.
+
+    :param default:
+    :param preference_name:
+    :param scope: Preference scope / domain code.
+    :param db_file_path: Pathname to the database file.
+    :param preference_name: Preference name.
+    :return (str): The preference value"""
+
+    if not db_file_exists(db_file_path=db_file_path):
+        print(f'Unable to locate database file located at {db_file_path}')
+        raise FileNotFoundError
+
+    db_conn = sqlite3.connect(db_file_path)
+    cur = db_conn.cursor()
+
+    cur.execute("select preference_value, data_type "
+                "from preferences "
+                "where scope = :scope "
+                "and preference_name = :preference_name;", {"scope": scope, "preference_name": preference_name})
+    row = cur.fetchone()
+    if row is not None:
+        preference_value, data_type = row
+    else:
+        db_conn.close()
+        preference_value = default
+        return preference_value
+    db_conn.close()
+    if data_type == 'str':
+        return str(preference_value)
+    elif data_type == 'int':
+        return int(preference_value)
+    elif data_type == 'Path':
+        return Path(preference_value)
+    elif data_type == 'float':
+        return float(preference_value)
+    else:
+        return str(preference_value)
+
+
 def preferences_scope_names(db_file_path: Path, scope: str):
-    """The preferences function, returns a list of lists. The inner lists, each represent a row from the preferences
-    table, which are matched based on the scope/domain passed to the function.
+    """The preferences_scope_names function, returns a list of lists. The inner lists, each represent a row from
+    the preferences table, which are matched based on the scope/domain passed to the function.
 
     :param db_file_path: Pathname to the DCCM database file.
     :param scope: A string, defining the preference scope/domain.
@@ -470,56 +555,78 @@ def upsert_preference(db_file_path: Path,
                       scope: str,
                       preference_name: str,
                       preference_value: str,
-                      preference_label: str = ''):
+                      data_type: str):
     """The upsert_preference function operates as an UPSERT mechanism. Inserting where the preference does not exists,
     but updating where it already exists.
 
     :param db_file_path: Pathname to the DCCM database file.
     :param scope: A string, defining the preference scope/domain.
     :param preference_name: The preference withing the specified scope, to be inserted/updated.
-    :param preference_value: The new value to set.
-    :param preference_label: A label which is associated with the preference entry."""
+    :param preference_value: The new value to set."""
     db_conn = sqlite3.connect(db_file_path)
     cur = db_conn.cursor()
 
     # Check to see if the preference exists.
     pref_exists = preference(db_file_path=db_file_path, scope=scope, preference_name=preference_name)
 
-    if preference_label == '':
-        preference_label = preference_name.replace('_', ' ').title()
-
     if pref_exists is None:
         # The preference does not exist
-        if preference_label:
-            cur.execute("insert  "
-                        "into preferences (scope, preference_name, preference_value, preference_label) "
-                        "values "
-                        "(:scope, :preference_name, :preference_value, :preference_label);",
-                        {"scope": scope, "preference_name": preference_name,
-                         "preference_value": preference_value,
-                         "preference_label": preference_label})
-        else:
-            cur.execute("insert  "
-                        "into preferences (scope, preference_name, preference_value) "
-                        "values "
-                        "(:scope, :preference_name, :preference_value);",
-                        {"scope": scope, "preference_name": preference_name,
-                         "preference_value": preference_value})
-    elif preference_label is None:
+
+        cur.execute("insert  "
+                    "into preferences (scope, preference_name, preference_value) "
+                    "values "
+                    "(:scope, :preference_name, :preference_value);",
+                    {"scope": scope, "preference_name": preference_name,
+                     "preference_value": preference_value})
+    else:
         # The preference does exist, so update it.
         cur.execute("update preferences  "
                     "set preference_value = :preference_value "
                     "where scope = :scope and preference_name = :preference_name;",
                     {"scope": scope, "preference_name": preference_name, "preference_value": preference_value})
+
+    db_conn.commit()
+    db_conn.close()
+
+
+def upsert_preference(db_file_path: Path,
+                      preference_row_dict: dict):
+    """The upsert_preference function operates as an UPSERT mechanism. Inserting where the preference does not exist,
+    but updating where it already exists. We use a dictionary as our row data currency, this helps us preserve column
+    values, where we don't modify them if cont required in some contexts.
+    :param db_file_path: Pathname to the database file.
+    :param preference_row_dict:
+    """
+    if not db_file_exists(db_file_path=db_file_path):
+        print(f'Unable to locate database file located at {db_file_path}')
+        raise FileNotFoundError
+
+    db_conn = sqlite3.connect(db_file_path)
+    cur = db_conn.cursor()
+
+    # Check to see if the preference exists.
+    curr_preference = preference_setting(db_file_path=db_file_path,
+                                         scope=preference_row_dict['scope'],
+                                         preference_name=preference_row_dict['preference_name'])
+
+    if curr_preference == 'NO_DATA_FOUND':
+        # The preference does not exist
+        cur.execute("insert  "
+                    "into preferences (scope, preference_name, data_type, preference_value, "
+                    "preference_attr1, preference_attr2, preference_attr3) "
+                    "values "
+                    "(:scope, :preference_name, :data_type, :preference_value, "
+                    ":preference_attr1, :preference_attr2, :preference_attr3);",
+                    preference_row_dict)
     else:
         cur.execute("update preferences  "
-                    "set preference_value = :preference_value, "
-                    "    preference_label = :preference_label "
+                    "set "
+                    "    preference_value = :preference_value, "
+                    "    preference_attr1 = :preference_attr1, "
+                    "    preference_attr2 = :preference_attr2, "
+                    "    preference_attr3 = :preference_attr3 "
                     "where scope = :scope and preference_name = :preference_name;",
-                    {"scope": scope,
-                     "preference_name": preference_name,
-                     "preference_value": preference_value,
-                     "preference_label": preference_label})
+                    preference_row_dict)
 
     db_conn.commit()
     db_conn.close()
@@ -680,10 +787,12 @@ class DCCMModule:
             oci_config = Path(preference(db_file_path=self.db_file_path,
                                          scope='preference',
                                          preference_name='oci_config'))
-
-            password = oci_secret(config_file_pathname=oci_config,
-                                  oci_profile=oci_profile,
-                                  secret_id=ocid)
+            try:
+                password = oci_secret(config_file_pathname=oci_config,
+                                      oci_profile=oci_profile,
+                                      secret_id=ocid)
+            except oci.exceptions.ServiceError:
+                return 'OCI service error (oci.exceptions.ServiceError) encountered, whilst requesting secret.', ''
             # password = str(password, encoding='ascii')
         else:
             if not ocid:
@@ -793,7 +902,7 @@ class DCCMModule:
                               preference_name=template_code)
         if template is None:
             status_text = f'The SSH tunneling template, "{template_code}", referenced by "{connection_id}", ' \
-                          f'no longer exists. This may be as a result of an incomplete executed migration ' \
+                          f'no longer exists. This may be as a result of an incompletely executed migration ' \
                           f'(preferences not restored). Please rectify and try again.'
             return status_text, ''
         ssh_command = dict_substitutions(template, ssh_dict)
@@ -1941,15 +2050,14 @@ class DCCMModule:
                          , connections_record)
         self.db_conn.commit()
 
-    def save_geometry(self, window_category: str, geometry: str):
+    def save_geometry(self, window_name: str, geometry: str):
         """The save_geometry method, stores the window geometry, of window  category/name, primarily to record
         the window's screen position, so that it can be restored, when subsequently re-launched. This works in
         partnership with the retrieve_geometry function"""
-        upsert_preference(db_file_path=self.db_file_path,
-                          scope='auto',
-                          preference_name=f'{window_category}_geometry',
-                          preference_value=geometry,
-                          preference_label='Auto-saved Geometry')
+        pref_row = preference_row(db_file_path=db_file, scope='window_geometry',
+                                  preference_name=window_name)
+        pref_row["preference_value"] = geometry
+        upsert_preference(db_file_path=self.db_file_path, preference_row_dict=pref_row)
 
     def host_port_from_connect_str(self, connection_string, wallet_pathname):
         host = None
@@ -2081,29 +2189,31 @@ class DCCMModule:
 
         return 'TNS Connect String not resolved / recognised.'
 
-    def retrieve_geometry(self, window_category: str):
+    def retrieve_geometry(self, window_name: str):
         """The retrieve_geometry method, restores the window geometry, of window  category/name, primarily to restore
         the window's screen position, after a subsequent re-launch. This works in partnership with the save_geometry
         function.
 
-        :param window_category: str
+        :param window_name: str
         :return: str"""
-        geometry = preference(db_file_path=self.db_file_path,
-                              scope='auto',
-                              preference_name=f'{window_category}_geometry')
+        geometry = preference_setting(db_file_path=self.db_file_path,
+                                      scope='window_geometry',
+                                      preference_name=window_name)
         return geometry
 
     def save_preferences(self, preferences: dict):
         """The save_preference method, receives a dictionary containing a preference entry, and upserts the data to the
-        DCCM database.
+        database. All operations are performed against the preference scope, "preference".
 
         :param preferences: dict"""
 
-        for pref, pref_value in preferences.items():
+        for pref_name, pref_value in preferences.items():
             if str(pref_value):
-                upsert_preference(db_file_path=self.db_file_path, scope='preference',
-                                  preference_name=pref, preference_value=str(pref_value),
-                                  preference_label='')
+                pref_row = preference_row(db_file_path=db_file, scope='preference',
+                                          preference_name=pref_name)
+                pref_row["preference_value"] = pref_value
+                upsert_preference(db_file_path=self.db_file_path, preference_row_dict=pref_row)
+
 
     def oci_config_profiles_list(self, db_file_path: Path):
         """Accept an OCI config file pathname, and return the associated value list of profiles, defined in
