@@ -224,6 +224,7 @@ def port_is_open(host: str, port_number: int):
 
     # Create a new socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(1)
     if host == 'localhost':
         host = '127.0.0.1'
     # Attempt to connect to the given host and port
@@ -232,6 +233,7 @@ def port_is_open(host: str, port_number: int):
             return True
         else:
             return False
+
     except socket.gaierror:
         # print(f'ERROR: Socket error: socket.gaierror: {host} / {port_number}')
         return False
