@@ -16,6 +16,9 @@ get-pip.py
 README.md
 requirements.txt
 stdin.py
+assets
 themes
 images
 data
+docs
+lib
