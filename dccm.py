@@ -361,7 +361,8 @@ class DCCMControl():
 
         # self.root_win.attributes("-alpha", 0.892)
 
-        self.restore_geometry(window_name='control_panel')
+        position_geometry = self.retrieve_geometry(window_name='control_panel')
+        self.root_win.geometry(position_geometry)
         self.root_win.geometry(f'{self.ROOT_WIDTH}x{self.ROOT_HEIGHT}')
         self.root_win.launch_in_gui_mode()
         self.update_opm_connections()
@@ -611,8 +612,6 @@ class DCCMControl():
                                                 "issues and that the database, and database listener are "
                                                 "started.",
                                         option_1='OK')
-                print(f'Database server cannot be reached. Connection may require ssh tunnel, VPN etc, '
-                      f'to be established.')
                 if confirm.get() == 'OK':
                     return
 
@@ -623,8 +622,6 @@ class DCCMControl():
                                     title='Action Required',
                                     message=f'{return_status}',
                                     option_1='OK')
-            print(f'Database server cannot be reached. Connection may require ssh tunnel, VPN etc, '
-                  f'to be established.')
             if confirm.get() == 'OK':
                 return
 
@@ -793,22 +790,6 @@ class DCCMControl():
         self.mvc_module.save_preferences(preferences=preferences_dict)
         self.status_bar.set_status_text(
             status_text='Preferences saved!')
-
-    def restore_geometry(self, window_name: str):
-        """The restore_geometry method acts as a broker, obtaining from the module class, a string of the window
-        geometry, for the specified window_name (name). Handing this over to the module class.
-        This is primarily used to control window positioning, upon subsequent program / window launches."""
-        ROOT_WIDTH = 400
-        ROOT_HEIGHT = 450
-        MOD_WIDTH = 820
-        MOD_HEIGHT = 760
-        geometry = self.mvc_module.retrieve_geometry(window_name=window_name)
-        if window_name == 'control_panel':
-            self.root_win.geometry(geometry)
-            self.root_win.geometry(f'{ROOT_WIDTH}x{ROOT_HEIGHT}')
-        elif window_name == 'toplevel':
-            self.root_win.top_mod_connection.geometry(geometry)
-            self.root_win.top_mod_connection.geometry(f"{MOD_WIDTH}x{MOD_HEIGHT}")
 
     def root_delete_connection(self):
         """The mod_delete_connection function, obtains the currently selected connection name, from the root window,
@@ -1313,7 +1294,7 @@ class DCCMControl():
         oci_config = fd.askopenfilename(initialdir=initial_directory)
         if oci_config:
             self.oci_config = oci_config
-            self.root_win.lbl_oci_config.configure(text=f'{self.oci_config}')
+            self.preferences.lbl_oci_config.configure(text=f'{self.oci_config}')
 
     def oci_config_profiles_list(self):
         """The oci_config_profiles_list method, acts as a broker, interacting with the module class and returning a
@@ -1405,7 +1386,10 @@ class DCCMControl():
         """The ask_wallet_location method, is called from the connections maintenance dialog. It allows the user to
         select a wallet (zip file), for a connection requiring cloud database access."""
         wallets_dir = self.default_wallet_directory
-        wallet_pathname = Path(fd.askopenfilename(initialdir=wallets_dir, initialfile=self.wallet_pathname))
+        wallet_pathname = fd.askopenfilename(initialdir=wallets_dir, initialfile=self.wallet_pathname)
+        if not wallet_pathname:
+            return
+        wallet_pathname = Path(wallet_pathname)
 
         connect_strings = []
         if wallet_pathname == Path('.'):
@@ -1949,7 +1933,7 @@ class DCCMControl():
         self.tunnel_templates.tk_tunnel_command_template.set(command_template)
         self.tunnel_templates.lbl_tunnel_ssh_tunnel_code.configure(state=tk.NORMAL)
         self.tunnel_templates.ent_tunnel_ssh_tunnel_code.configure(state=tk.NORMAL)
-        self.tunnel_templates.ent_tunnel_ssh_tunnel_code.configure(statScanne=tk.NORMAL)
+        self.tunnel_templates.ent_tunnel_ssh_tunnel_code.configure(state=tk.NORMAL)
         self.tunnel_templates.btn_tunnel_save.configure(state=tk.NORMAL)
         self.tunnel_templates.btn_tunnel_cancel.configure(state=tk.NORMAL)
         self.tunnel_templates.lbl_tunnel_command_template.configure(state=tk.NORMAL)
