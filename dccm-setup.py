@@ -208,8 +208,7 @@ def initialise_database():
 
     db_conn = sqlite3.connect(db_file)
     cur = db_conn.cursor()
-    cur.execute("""create table if not exists
-     connections (
+    cur.execute("""create table if not exists connections (
        connection_identifier text primary key,
        database_type text not null,
        connection_type text not null,
@@ -225,7 +224,10 @@ def initialise_database():
        ssh_tunnel_required_yn  text,
        ssh_tunnel_code text,
        listener_port integer,
-       description     text);
+       description     text,
+       connection_banner varchar(10), 
+       connection_message varchar(75), 
+       connection_text_colour varchar(10));
     """)
     db_conn.commit()
 
