@@ -224,7 +224,7 @@ def port_is_open(host: str, port_number: int):
 
     # Create a new socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(1)
+    sock.settimeout(0.25)
     if host == 'localhost':
         host = '127.0.0.1'
     # Attempt to connect to the given host and port
