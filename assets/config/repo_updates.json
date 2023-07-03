@@ -1,49 +1,30 @@
 {
-   "001":{
-      "sql_apply_version":"2.3.0",
-      "description": "Apply system id security update",
-      "sql_statement":"delete from preferences where preference_name = 'system_hash_id' and scope = 'system';"
-   },
-   "002":{
-      "sql_apply_version":"2.3.0",
-      "description": "Add connections.connection_banner",
-      "sql_statement":"alter table connections add column connection_banner varchar(10);"
-   },
-   "003":{
-      "sql_apply_version":"2.3.0",
-      "description": "Add connections.connection_message",
-      "sql_statement":"alter table connections add column connection_message varchar(75);"
-   },
-   "004":{
-      "sql_apply_version":"2.3.0",
-      "description": "Add connections.connection_text_colour",
-      "sql_statement":"alter table connections add column connection_text_colour varchar(10)"
-   },
-   "005":{ "sql_apply_version":"3.0.0",
-      "description": "Control panel geometry",
-      "sql_statement": "insert into preferences (scope, preference_name, data_type, preference_value) values ('window_geometry', 'control_panel', 'str', '520x580+30+30');" },
 
-   "006":{ "sql_apply_version":"3.0.0",
+   "001":{ "sql_apply_version":"3.0.0",
+      "description": "Export Control Panel dialog geometry",
+      "sql_statement": "insert into preferences (scope, preference_name, data_type, preference_value) values ('window_geometry', 'control_panel', 'str', '535x580+30+30');" },
+
+   "002":{ "sql_apply_version":"3.0.0",
       "description": "Export connections dialog geometry",
       "sql_statement": "insert into preferences (scope, preference_name, data_type, preference_value) values ('window_geometry', 'export_connections', 'str', '600x310+30+30');" },
 
-   "007":{ "sql_apply_version":"3.0.0",
+   "003":{ "sql_apply_version":"3.0.0",
       "description": "Import connections dialog geometry",
       "sql_statement": "insert into preferences (scope, preference_name, data_type, preference_value) values ('window_geometry', 'import_connections', 'str', '650x480+30+30');" },
 
-   "008":{ "sql_apply_version":"3.0.0",
+   "004":{ "sql_apply_version":"3.0.0",
       "description": "Maintain connection panel geometry",
       "sql_statement": "insert into preferences (scope, preference_name, data_type, preference_value) values ('window_geometry', 'maintain_connection', 'str', '820x760+30+30');" },
 
-   "009":{ "sql_apply_version":"3.0.0",
+   "005":{ "sql_apply_version":"3.0.0",
       "description": "Preferences dialog geometry",
       "sql_statement": "insert into preferences (scope, preference_name, data_type, preference_value) values ('window_geometry', 'preferences_panel', 'str', '400x500+30+30');" },
 
-   "010":{ "sql_apply_version":"3.0.0",
+   "006":{ "sql_apply_version":"3.0.0",
       "description": "Connection scan panel geometry",
       "sql_statement": "insert into preferences (scope, preference_name, data_type, preference_value) values ('window_geometry', 'connection_scan', 'str', '680x470+30+30');" },
 
-   "011":{ "sql_apply_version":"3.0.0",
+   "007":{ "sql_apply_version":"3.0.0",
       "description": "Client tools panel geometry",
       "sql_statement": "insert into preferences (scope, preference_name, data_type, preference_value) values ('window_geometry', 'client_tools', 'str', '680x470+10+15');" },
 
