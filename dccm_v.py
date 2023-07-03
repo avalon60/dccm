@@ -1007,7 +1007,7 @@ class ConnectivityScanner(ctk.CTkToplevel):
         frm_buttons.grid(column=0, row=1, padx=(10, 10), pady=(0, 10), sticky='ew')
 
         btn_ok = ctk.CTkButton(master=frm_buttons, text='OK', width=CSCAN_WIDTH - 30,
-                               command=self.destroy)
+                               command=self.close_dialog)
         btn_ok.grid(row=0, column=0, padx=(5, 5), pady=10)
 
         connections = self.controller.connections_dict()
@@ -1028,7 +1028,7 @@ class ConnectivityScanner(ctk.CTkToplevel):
         self.tbv_connections.grid(row=0, column=0)
 
         row += 1
-        print(f'DEBUG: Scanning phase 1')
+
         for i, connection_name in enumerate(connections.keys(), start=1):
             db_account_name = connections[connection_name]["db_account_name"]
             connect_string = connections[connection_name]["connect_string"]
@@ -1038,7 +1038,6 @@ class ConnectivityScanner(ctk.CTkToplevel):
 
         # Second loop. We need this because we can't combine add_row and insert in
         # the same loop (current limitation on CTkTable).
-        print(f'DEBUG: Scanning phase 2')
         for i, connection_name in enumerate(connections.keys(), start=1):
 
             try:
@@ -1114,6 +1113,11 @@ class ConnectivityScanner(ctk.CTkToplevel):
         self.tbv_connections.edit_column(3, width=40)
         self.tbv_connections.edit_column(4, width=40)
         self.grab_set()
+
+    def close_dialog(self):
+        geometry = self.geometry()
+        self.controller.save_geometry(window_name='connection_scan', geometry=geometry)
+        self.destroy()
 
 
 class Preferences(ctk.CTkToplevel):
