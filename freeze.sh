@@ -5,4 +5,4 @@
 #  Descr: Generates a Pyython requirements.txt file for DCCM
 ##############################################################################
 source venv/bin/activate
-pip freeze > requirements.txt
+pip freeze | grep -v "apt-clone" > requirements.txt
