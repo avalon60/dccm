@@ -410,7 +410,7 @@ def unpack_package(zip_pathname: Path, install_location: Path):
 
 if __name__ == "__main__":
     if args_list["install_location"] is None:
-        install_location = Path(home_directory) / PRODUCT.lower()
+        install_location = Path(home_directory)
     else:
         install_location = args_list["install_location"]
         install_location = str(os.path.abspath(install_location))
@@ -424,7 +424,7 @@ if __name__ == "__main__":
 
     # Perform initial checks
     print('Checking Python interpreter version...')
-    if not (version_scalar('3.8.0') <= version_scalar(python_version) <= version_scalar('3.10.99')):
+    if not (version_scalar('3.8.0') <= version_scalar(python_version) <= version_scalar('3.11.99')):
         print(f'ERROR: Python interpreter version, {python_version}, is unsupported.\n'
               f'Only Python versions between 3.8 and 3.10 are supported')
         exit(1)
