@@ -1,8 +1,8 @@
 """Database Client Connection Manager"""
 # Control
-__title__ = 'Database Client Connection Manager (Module Component: MVC)'
+__title__ = 'Database Client\nConnection Manager'
 __author__ = 'Clive Bostock'
-__version__ = "2.4.0"
+__version__ = "3.0.0"
 
 from configparser import ConfigParser
 import oracledb as odb
@@ -47,7 +47,8 @@ if tns_admin is None and oracle_home is not None:
 prog_path = os.path.realpath(__file__)
 prog = os.path.basename(__file__)
 # Get the data location, required for the config file etc
-app_home = Path(os.path.dirname(os.path.realpath(__file__)))
+app_home = os.path.dirname(os.path.realpath(__file__))
+app_home = Path(os.path.dirname(app_home))
 app_assets = app_home / 'assets'
 data_location = app_assets / 'data'
 images_location = app_assets / 'images'
@@ -62,6 +63,22 @@ themes_location = app_assets / 'themes'
 base_prog = prog.replace(".py", "")
 connection_export_default = f'{base_prog}_exp.json'
 settings_export_default = f'{base_prog}_preferences_backup.json'
+
+# Constants
+# These aren't true sizes as per WEB design
+HEADING1 = ('Roboto', 26)
+HEADING2 = ('Roboto', 22)
+HEADING3 = ('Roboto', 20)
+HEADING4 = ('Roboto', 18)
+HEADING5 = ('Roboto', 16)
+
+# HEADING_UL = 'Roboto 11 underline'
+REGULAR_TEXT = ('Roboto', 10)
+SMALL_TEXT = ('Roboto', 9)
+
+TOOLTIP_DELAY = 1
+
+
 
 if not exists(data_location):
     os.mkdir(data_location)
@@ -224,7 +241,7 @@ def port_is_open(host: str, port_number: int):
 
     # Create a new socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(0.25)
+    sock.settimeout(0.01)
     if host == 'localhost':
         host = '127.0.0.1'
     # Attempt to connect to the given host and port
@@ -553,12 +570,12 @@ def preferences_scope_names(db_file_path: Path, scope: str):
     return list_of_preferences
 
 
-def upsert_preference(db_file_path: Path,
+def upsert_preference_row(db_file_path: Path,
                       scope: str,
                       preference_name: str,
                       preference_value: str,
                       data_type: str):
-    """The upsert_preference function operates as an UPSERT mechanism. Inserting where the preference does not exists,
+    """The upsert_preference_row function operates as an UPSERT mechanism. Inserting where the preference does not exists,
     but updating where it already exists.
 
     :param db_file_path: Pathname to the DCCM database file.
@@ -575,10 +592,10 @@ def upsert_preference(db_file_path: Path,
         # The preference does not exist
 
         cur.execute("insert  "
-                    "into preferences (scope, preference_name, preference_value) "
+                    "into preferences (scope, preference_name, data_type, preference_value) "
                     "values "
-                    "(:scope, :preference_name, :preference_value);",
-                    {"scope": scope, "preference_name": preference_name,
+                    "(:scope, :preference_name, :data_type, :preference_value);",
+                    {"scope": scope, "preference_name": preference_name, "data_type": data_type,
                      "preference_value": preference_value})
     else:
         # The preference does exist, so update it.
