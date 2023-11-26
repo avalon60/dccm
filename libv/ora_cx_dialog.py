@@ -32,7 +32,7 @@ class OraConnectionMaintenanceDialog(ctk.CTkToplevel):
         super().__init__(*args, **kwargs)
         self.controller = controller
         DIALOG_WIDTH = 820
-        DIALOG_HEIGTH = 760
+        DIALOG_HEIGTH = 790
 
         default_padx = 5
         default_pady = 10
@@ -64,7 +64,7 @@ class OraConnectionMaintenanceDialog(ctk.CTkToplevel):
 
         lbl_mod_connection_type = ctk.CTkLabel(master=self.frm_mod_connection_body, text='Connection Name / Type',
                                                font=HEADING4)
-        lbl_mod_connection_type.grid(row=0, column=0, padx=(10, 5), pady=0, sticky='w', columnspan=2)
+        lbl_mod_connection_type.grid(row=0, column=0, padx=(10, 5), pady=5, sticky='w', columnspan=2)
 
         self.frm_mod_conn_type = ctk.CTkFrame(master=self.frm_mod_connection_body)
         self.frm_mod_conn_type.grid(row=1, column=0, padx=5, pady=0, sticky='ew', columnspan=2)
