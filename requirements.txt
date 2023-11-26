@@ -4,13 +4,14 @@ cffi==1.15.1
 circuitbreaker==1.4.0
 colorama==0.4.6
 cryptography==38.0.4
-CTkMessagebox==2.0
-customtkinter==5.2.0
+CTkMessagebox==2.1
+customtkinter==5.2.1
 darkdetect==0.7.1
 kellanb-cryptography==1.2.2
 lxml==4.7.1
 oci==2.88.2
 oracledb==1.2.2
+packaging==23.2
 Pillow==9.3.0
 pycparser==2.21
 pycryptodome==3.15.0
