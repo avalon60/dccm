@@ -6,9 +6,10 @@ PROG=`basename $0`
 ART_CODE="dccm"
 E="-e"
 
-APP_HOME=`dirname $0` 
+APP_HOME=$(dirname $0) 
+APP_HOME=$(realpath ${APP_HOME}) 
 cd ${APP_HOME}
-APP_HOME=`pwd`
+APP_HOME=$(pwd)
 
 date_time()
 {
@@ -18,9 +19,16 @@ date_time()
 
 app_version()
 {
-  version=`head -30 ${ART_CODE}.py | grep "__version__" | cut -f3 -d " " |  sed 's/"//g' | tr -d '\r'`
+  version_file="${APP_HOME}/libm/${ART_CODE}_m.py"
+  if [ ! -f "${version_file}" ]
+  then
+    echo $E "ERROR: Cannot find main model Python file, libm/${ART_CODE}_m.py".
+    exit 1
+  fi
+  version=$(head -30 ${version_file} | grep "__version__" | cut -f3 -d " " |  sed 's/"//g' | tr -d '\r')
   echo "$version"
 }   
+
 display_usage()
 {
   echo "Usage: ${PROG}  -v <version_tag>"
@@ -62,10 +70,20 @@ fi
 mkdir -p ../stage/dccm
 for file in `cat bom.lst`
 do 
-  cp -r $file ../stage/dccm
+  if [ -d "${file}" ]
+  then
+    echo $E "cp -r ${file} ../stage/dccm"
+    cp -r ${file} ../stage/dccm
+  elif [ -f "${file}" ]
+  then
+    echo $E "cp $file ../stage/dccm/${file}"
+    cp $file ../stage/dccm
+  else
+    echo "ERROR: Unrecognised type:  ${file}"
+  fi
 done
 # Make sure we don't include the SQLite3 database.
-rm ../stage/dccm/assets/data/*.db
+rm ../stage/dccm/assets/data/*.db 2> /dev/null
 cd ../stage
 STAGE_LOC=`pwd`
 cd dccm
@@ -89,5 +107,5 @@ if [ $? -ne 0 ]
 then 
    exit 1
 fi
-rm -fr ../stage/dccm
+# rm -fr ../stage/dccm
 echo "Done."
