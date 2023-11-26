@@ -1,16 +1,14 @@
 """Database Client Connection Manager"""
-# Control
-__title__ = 'Database Client\nConnection Manager'
-__author__ = 'Clive Bostock'
-__version__ = "3.0.0"
 
-from colorama import just_fix_windows_console
+import libm.dccm_m as mod
+# Control
+
 import oracledb as odb
 
 import tkinter as tk
 from tkinter import filedialog as fd
 import customtkinter as ctk
-import dccm_v as vew
+from libv import dccm_v as vew
 
 from pathlib import Path
 import json
@@ -22,10 +20,10 @@ import os
 import sys
 from os.path import exists
 from os.path import expanduser
-import dccm_m as mod
 
 from zipfile import ZipFile
-import cbtk_kit as cbtk
+from libv.ora_cx_dialog import OraConnectionMaintenanceDialog
+import lib.cbtk_kit as cbtk
 # from tkfontawesome import icon_to_image
 import re
 import socket
@@ -37,6 +35,10 @@ from shutil import which
 import base64
 from CTkMessagebox import CTkMessagebox
 
+__title__ = mod.__title__
+__author__ = 'Clive Bostock'
+__version__ = mod.__version__
+
 ENCODING = 'utf-8'
 
 # Constants
@@ -44,6 +46,7 @@ HEADING1 = 'Roboto 16'
 HEADING2 = 'Roboto 14'
 HEADING3 = 'Roboto 12'
 HEADING4 = 'Roboto 11'
+HEADING_UL = 'Roboto 11 underline'
 HEADING_UL = 'Roboto 11 underline'
 REGULAR_TEXT = 'Roboto 10'
 SMALL_TEXT = 'Roboto 7'
@@ -638,7 +641,7 @@ class DCCMControl():
     def launch_mod_connection(self):
         """The launch_mod_connection method, lunches the maintain_connection method in "Modify" mode. This creates
          the CTkTopLevel, used to update an existing  connection record."""
-        self.conn_maintenance = vew.ConnectionMaintenanceDialog(controller=self, operation='Modify')
+        self.conn_maintenance = OraConnectionMaintenanceDialog(controller=self, operation='Modify')
         self.conn_maintenance.swt_mod_wallet_required.configure(command=lambda conn_maintenance=self.conn_maintenance:
         self.toggle_mod_wallet_display(conn_maintenance=conn_maintenance))
 
@@ -651,7 +654,7 @@ class DCCMControl():
          the CTkTopLevel, used to create a new connection record."""
         self.wallet_pathname = ''
         self.client_launch_directory = ''
-        self.conn_maintenance = vew.ConnectionMaintenanceDialog(controller=self, operation='Add New')
+        self.conn_maintenance = OraConnectionMaintenanceDialog(controller=self, operation='Add New')
         self.toggle_mod_tunnel_widgets()
 
     def launch_ssh_tunnel(self, connection_id: str = None):
@@ -670,10 +673,6 @@ class DCCMControl():
                                     option_1='OK')
             if confirm.get() == 'OK':
                 return
-        elif status_text:
-            # We are in "command" or "plugin mode", so issue a message via print statement and exit.
-            print(status_text)
-            return
 
         status = os.system(ssh_command)
         if status:
@@ -1112,7 +1111,7 @@ class DCCMControl():
 
         if wallet_required == "Y" and not port_open:
             confirm = CTkMessagebox(master=self.conn_maintenance,
-                                    title='PAction Required',
+                                    title='Action Required',
                                     message=f"Database server, {host}, cannot be reached on port "
                                             f"{port} Connection may require ssh tunnel, VPN etc, to be "
                                             "established.",
@@ -1121,7 +1120,7 @@ class DCCMControl():
                 return
         elif not port_open:
             confirm = CTkMessagebox(master=self.conn_maintenance,
-                                    title='PAction Required',
+                                    title='Action Required',
                                     message=f"Database server, {host}, cannot be reached on port "
                                             f"{port}. Please check that the database server is contactable and "
                                             f"that the database, and database listener are started.",
@@ -1563,9 +1562,9 @@ class DCCMControl():
 
     def launch_export_dialog(self):
         """The launch_export_dialog is the entry point to the GUI export interface."""
-        export_dialog = vew.ConnectionExport(controller=self)
+        self.export_dialog = vew.ConnectionExport(controller=self)
         connections_list = self.mvc_module.connection_identifiers_list()
-        export_dialog.lbx_export_connections.set_values(values=connections_list)
+        self.export_dialog.lbx_export_connections.set_values(values=connections_list)
 
     def begin_connection_import(self):
         """The begin_connection_import is called from the GUI import dialog. It performs some initial checks, ensuring
@@ -1617,23 +1616,23 @@ class DCCMControl():
         """The begin_connection_export is called from the GUI export dialog. When called it in turn has the user
         navigate to a directory, via a dialog, and enter an export filename to export to, before going on to request
         of the module class instance, that the import request be actioned."""
-        exp_connections_list = self.root_win.lbx_export_connections.get()
+        exp_connections_list = self.export_dialog.lbx_export_connections.get()
         if exp_connections_list is None:
-            self.root_win.export_status_bar.set_status_text(
+            self.export_dialog.export_status_bar.set_status_text(
                 status_text=f'You must select, at least one connection to export.')
             return
 
-        exp_password = self.root_win.ent_export_password.get()
+        exp_password = self.export_dialog.ent_export_password.get()
 
-        exp_password_confirm = self.root_win.ent_export_password2.get()
+        exp_password_confirm = self.export_dialog.ent_export_password2.get()
         if exp_password != exp_password_confirm:
-            self.root_win.export_status_bar.set_status_text(
+            self.export_dialog.export_status_bar.set_status_text(
                 status_text=f'The passwords do not match - please re-enter.')
             return
 
-        export_wallets_yn = self.root_win.tk_export_wallets.get()
+        export_wallets_yn = self.export_dialog.tk_export_wallets.get()
         if export_wallets_yn == 'Y' and not exp_password:
-            self.root_win.export_status_bar.set_status_text(
+            self.export_dialog.export_status_bar.set_status_text(
                 status_text=f'Wallets can only be shipped where an export password is supplied.')
             return
 
