@@ -21,8 +21,9 @@ __author__ = 'Clive Bostock'
 __version__ = "2.0.0"
 
 # Constants
-ASSET_DIRS = ['themes', 'images']
-KEY_INV_FILES = ['dccm.bat', 'dccm.sh', 'dccm.py', 'dccm_v.py', 'dccm_m.py',
+ASSET_DIRS = ['themes', 'images', 'data']
+SUB_DIRS = ['lib', 'libm', 'libv']
+KEY_INV_FILES = ['dccm.bat', 'dccm.sh', 'dccm.py', 'libv/dccm_v.py', 'libm/dccm_m.py',
                  'build_app.sh',
                  'build_app.bat', 'get-pip.py', 'requirements.txt',
                  'assets/config/repo_updates.json']
@@ -55,11 +56,9 @@ ap.add_argument("-i", "--install-locations", required=False, action="store",
                 For example on MacOS or Linux, this will equate to  $HOME, and on Windows it would be 
                 <system_drive>:\\Users\\<username>.""", dest='install_location', default=None)
 
-
 ap.add_argument("-p", "--package", required=False, action="store",
                 help=f"""Used for {PRODUCT} deployments & upgrades. Use -a along with the pathname to the {PRODUCT} 
                       package ZIP file.""", dest='package', default=None)
-
 
 operating_system = platform.system()
 home_directory = expanduser("~")
@@ -264,6 +263,7 @@ def initialise_database():
 
     db_conn.commit()
 
+
 def preference(db_file_path: Path, scope: str, preference_name):
     """The preference function accepts a preference scope and preference name, and returns the associated preference
     value.
@@ -302,7 +302,6 @@ def app_versions():
         application_version, previous_app_version = record
     else:
         previous_app_version, application_version = '0.0.0', '2.0.0'
-
 
     db_conn.close()
     return application_version, previous_app_version
@@ -344,7 +343,6 @@ def upsert_preference(db_file_path: Path,
     # Check to see if the preference exists.
     pref_exists = preference(db_file_path=db_file_path, scope=scope, preference_name=preference_name)
 
-
     if pref_exists is None:
         # The preference does not exist
         cur.execute("insert  "
@@ -376,6 +374,12 @@ def app_home_contents_ok():
         full_path = assets_location / directory
         if not full_path.exists():
             missing_dirs.append(full_path)
+
+    for directory in SUB_DIRS:
+        full_path = app_home / directory
+        if not full_path.exists():
+            missing_dirs.append(full_path)
+
     for file in KEY_INV_FILES:
         full_path = app_home / file
         if not full_path.exists():
@@ -384,9 +388,9 @@ def app_home_contents_ok():
         print(f'The specified application home directory, {app_home}, appears invalid.\nThe following components '
               f'are missing:')
         for directory in missing_dirs:
-            print(f'{directory} (directory)')
+            print(f'  *  {directory} (directory)')
         for file in missing_files:
-            print(f'{file} (file)')
+            print(f'  *  {file} (file)')
         return False
     else:
         return True
@@ -415,7 +419,7 @@ if __name__ == "__main__":
         install_location = args_list["install_location"]
         install_location = str(os.path.abspath(install_location))
         install_location = Path(install_location)
-    
+
     if package:
         package = os.path.abspath(package)
 
@@ -490,7 +494,7 @@ if __name__ == "__main__":
         print(f'Unpacking package: {package} to: {install_location}')
         unpack_package(zip_pathname=package, install_location=install_location)
 
-    entry_point_script = PRODUCT.lower() + '.py'
+    version_file = app_home / 'libm' / f'{PRODUCT.lower()}_m.py'
 
     print(f'Inspecting {PRODUCT} application home directory...')
     if app_home_contents_ok():
@@ -507,12 +511,12 @@ if __name__ == "__main__":
         os.system('./build_app.sh')
         os.system(f'chmod 750 {PRODUCT.lower()}')
 
-    app_version = app_file_version(app_home / f'{entry_point_script}')
+    app_version = app_file_version(version_file)
 
     apply_repo_updates(data_directory=data_location, app_file_version=app_version, db_file_path=db_file)
     print(f'App Home for {PRODUCT}: ' + str(os.path.abspath(app_home)))
 
-    print(f'\nTo launch the application run the {PRODUCT.lower()} command script, located at:\n{app_home}/{PRODUCT.lower()}')
+    print(
+        f'\nTo launch the application run the {PRODUCT.lower()} command script, located at:\n{app_home}/{PRODUCT.lower()}')
 
     print("\nDone.")
-
