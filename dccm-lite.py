@@ -10,11 +10,7 @@ from colorama import just_fix_windows_console
 import oracledb as odb
 from operator import attrgetter
 
-import tkinter as tk
 from tkinter import filedialog as fd
-import customtkinter as ctk
-import dccm_v as vew
-from PIL import Image, ImageTk
 
 from argparse import HelpFormatter
 from pathlib import Path
@@ -22,7 +18,6 @@ import json
 import sqlite3
 import platform
 import pyfiglet
-import pyperclip
 import os
 import sys
 from os.path import exists
@@ -30,19 +25,15 @@ from os.path import expanduser
 import dccm_m as mod
 
 from zipfile import ZipFile
-import cbtk_kit as cbtk
 # from tkfontawesome import icon_to_image
-import re
 import socket
 import subprocess
 import oci
 from oci.config import from_file
-import hashlib
 from kellanb_cryptography import aes, key
 import shutil
 from shutil import which
 import base64
-
 
 ENCODING = 'utf-8'
 
@@ -179,7 +170,7 @@ ap.add_argument("-i", "--import-match", required=False, action="store",
                 help='Specify "all" to perform a full import, or specify a specific Connection Id. '
                      'If specified, any mode based operation request is ignored. The -e and -i options are mutually '
                      'exclusive. Also see the -f option.',
-                dest='import_connection', default=None)
+                dest='import_connection', default='')
 
 ap.add_argument("-I", "--import-options", required=False, action="store",
                 help='A space of comma, separated list of one or more keywords, enclosed within quotes. Valid options '
@@ -214,7 +205,7 @@ ap.add_argument("-P", "--preferences", required=False, action="store",
 
 ap.add_argument("-s", "--sql-script", required=False, action="store", nargs="+",
                 help="""Used to specify the pathname of a sql script to executed. This is only used in "command" mode. 
-                """, dest='sql_script', default=None)
+                """, dest='sql_script', default='')
 
 ap.add_argument("-t", "--establish-tunnel", required=False, action="store_true",
                 help="""Used in conjunction with -c flag. However, instead of launching the specified connection, the 
@@ -303,7 +294,6 @@ if import_connection and 'wallets-on' in import_options and 'remap-on' not in im
     print('You must specify "remap-on" as an import option, when requesting with "wallets-on".')
     print("Please rectify and try again.")
     exit(1)
-
 
 valid_modes = ["plugin", "command"]
 valid_modes_str = ', '.join(valid_modes)
@@ -443,9 +433,7 @@ def dump_preferences(db_file_path: Path):
                 "preference_value, "
                 "preference_attr1, "
                 "preference_attr2, "
-                "preference_attr3, "
-                "preference_attr4, "
-                "preference_attr5 "
+                "preference_attr3  "
                 "from preferences;")
     preferences = cur.fetchall()
     db_conn.close()
@@ -489,12 +477,11 @@ def restore_preferences(restore_file_name: Path):
         scope = row["scope"]
         preference_name = row["preference_name"]
         preference_value = row["preference_value"]
-        preference_label = row["preference_label"]
-        upsert_preference(db_file_path=db_file,
-                          scope=scope,
-                          preference_name=preference_name,
-                          preference_value=preference_value,
-                          preference_label=preference_label)
+        mod.upsert_preference_row(db_file_path=db_file,
+                                  scope=scope,
+                                  data_type='str',
+                                  preference_name=preference_name,
+                                  preference_value=preference_value)
     feedback.append(f'Restore complete.')
     return feedback
 
@@ -550,12 +537,9 @@ def preferences_dict_list(db_file_path: Path):
     cur.execute("select scope, "
                 "preference_name, "
                 "preference_value, "
-                "preference_label, "
                 "preference_attr1, "
                 "preference_attr2, "
-                "preference_attr3, "
-                "preference_attr4, "
-                "preference_attr5 "
+                "preference_attr3  "
                 "from preferences "
                 "order by scope, preference_name;")
     preferences = cur.fetchall()
@@ -624,9 +608,7 @@ def preferences_scope_list(db_file_path: Path, scope: str):
                 "preference_value, "
                 "preference_attr1, "
                 "preference_attr2, "
-                "preference_attr3, "
-                "preference_attr4, "
-                "preference_attr5 "
+                "preference_attr3  "
                 "from preferences "
                 "where scope = :scope "
                 "order by preference_name;", {"scope": scope})
@@ -662,65 +644,6 @@ def preferences_scope_names(db_file_path: Path, scope: str):
     for row in preferences:
         list_of_preferences.append(row[0])
     return list_of_preferences
-
-
-def upsert_preference(db_file_path: Path,
-                      scope: str,
-                      preference_name: str,
-                      preference_value: str,
-                      preference_label: str = ''):
-    """The upsert_preference function operates as an UPSERT mechanism. Inserting where the preference does not exists,
-    but updating where it already exists.
-
-    :param db_file_path: Pathname to the DCCM database file.
-    :param scope: A string, defining the preference scope/domain.
-    :param preference_name: The preference withing the specified scope, to be inserted/updated.
-    :param preference_value: The new value to set.
-    :param preference_label: A label which is associated with the preference entry."""
-    db_conn = sqlite3.connect(db_file_path)
-    cur = db_conn.cursor()
-
-    # Check to see if the preference exists.
-    pref_exists = preference(db_file_path=db_file_path, scope=scope, preference_name=preference_name)
-
-    if preference_label == '':
-        preference_label = preference_name.replace('_', ' ').title()
-
-    if pref_exists is None:
-        # The preference does not exist
-        if preference_label:
-            cur.execute("insert  "
-                        "into preferences (scope, preference_name, preference_value, preference_label) "
-                        "values "
-                        "(:scope, :preference_name, :preference_value, :preference_label);",
-                        {"scope": scope, "preference_name": preference_name,
-                         "preference_value": preference_value,
-                         "preference_label": preference_label})
-        else:
-            cur.execute("insert  "
-                        "into preferences (scope, preference_name, preference_value) "
-                        "values "
-                        "(:scope, :preference_name, :preference_value);",
-                        {"scope": scope, "preference_name": preference_name,
-                         "preference_value": preference_value})
-    elif preference_label is None:
-        # The preference does exist, so update it.
-        cur.execute("update preferences  "
-                    "set preference_value = :preference_value "
-                    "where scope = :scope and preference_name = :preference_name;",
-                    {"scope": scope, "preference_name": preference_name, "preference_value": preference_value})
-    else:
-        cur.execute("update preferences  "
-                    "set preference_value = :preference_value, "
-                    "    preference_label = :preference_label "
-                    "where scope = :scope and preference_name = :preference_name;",
-                    {"scope": scope,
-                     "preference_name": preference_name,
-                     "preference_value": preference_value,
-                     "preference_label": preference_label})
-
-    db_conn.commit()
-    db_conn.close()
 
 
 class DCCMControl:
@@ -958,7 +881,7 @@ class DCCMControl:
         connection_banner = connection_record["connection_banner"]
         if connection_banner is None:
             connection_banner = ''
-        if connection_banner and connection_banner !='None':
+        if connection_banner and connection_banner != 'None':
             ascii_banner = pyfiglet.figlet_format(connection_banner)
             print(f'{colour_sequence}{ascii_banner}{colour_off}')
 
@@ -1026,6 +949,24 @@ class DCCMControl:
         if status:
             print(f"Client returned with a status of: {status}")
 
+    def launch_ssh_tunnel(self, connection_id: str = None):
+        """The launch_ssh_tunnel method, marshals the required details, required to launch a terminal window, with
+        the command required to forge an ssh tunnel for a specified connection id. The function leans on the module
+        class to pull much of the detail together. Once the command is formulated, it is executed directly by
+        launch_client_connection."""
+        if connection_id is None:
+            connection_id = self.opm_connections.get()
+
+        status_text, ssh_command = self.mvc_module.formulate_ssh_launch(connection_id=connection_id, mode='gui')
+        if status_text:
+            print(f'Status: {status_text}')
+            return
+
+        # print(f'Command: {ssh_command}')
+        status = os.system(ssh_command)
+        if status:
+            print(f'Client command, "{ssh_command}", returned with a status of: {status}')
+
     def database_type_descriptors(self):
         """The database_type_descriptors method acts as a broker, to obtain a list of supported database types
         from the module class. This is used to present details via the view class object."""
@@ -1036,7 +977,6 @@ class DCCMControl:
         """The connection_type_descriptors function acts as a broker, to obtain a list of supported database
         connection/management types from the module class. This is used to present details via the view class object."""
         return self.mvc_module.connection_type_list()
-
 
     def resolve_connect_host_port(self, connection_name: str):
         """The resolve_connect_host_port method acts as a broker, to obtain a tuple of host, port, required by the
@@ -1054,7 +994,6 @@ class DCCMControl:
         :return geometry (str)"""
         geometry = self.mvc_module.retrieve_geometry(window_category=window_category)
         return geometry
-
 
     def get_oci_config(self):
         """The get_oci_config method is launched from the DCCM Preferences dialog. It in turn, launches
